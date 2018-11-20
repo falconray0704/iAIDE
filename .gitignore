@@ -1,3 +1,14 @@
+Makefile
+aide
+aide.spec
+config.h
+config.log
+config.status
+doc/aide.conf
+src/.deps/
+src/.dirstamp
+stamp-h1
+
 # Prerequisites
 *.d
 
