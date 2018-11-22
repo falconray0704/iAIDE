@@ -299,16 +299,24 @@ typedef struct db_line {
 
 } db_line;
 
+typedef struct _DB_Container {
+  url_t* db_url;
+  FILE* db;
+} DB_Container;
+
 typedef struct db_config {
-  
+
   url_t* db_in_url;
   FILE* db_in;
+  //DB_Container db_in;
   
   url_t* db_new_url;
   FILE* db_new;
+  //DB_Container db_new;
   
   url_t* db_out_url;
   FILE* db_out;
+  //DB_Container db_out;
   
   int config_check;
 
@@ -364,6 +372,7 @@ typedef struct db_config {
   list* negrxlst;
 
   int verbose_level;
+  int enable_RAM_DB;
   int database_add_metadata;
   int report_detailed_init;
   int report_base16;

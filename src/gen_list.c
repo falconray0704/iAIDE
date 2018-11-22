@@ -1202,6 +1202,7 @@ void populate_tree(seltree* tree)
     }
     if(conf->action&DO_INIT) {
         write_tree(tree);
+        fprintf(stdout,"=== tree:%p ===\n", tree);
     }
 }
 

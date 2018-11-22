@@ -9,6 +9,11 @@ src/.deps/
 src/.dirstamp
 stamp-h1
 
+tags
+.idea
+CMakeLists.txt
+cmake-build-debug
+
 # Prerequisites
 *.d
 

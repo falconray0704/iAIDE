@@ -46,7 +46,8 @@
  *   - The third argument is the function pointer to the compare function to use
  *   - Returns the head of the list
  */
-list* list_sorted_insert(list* listp, void* data, int (*compare) (const void*, const void*)) {
+list* list_sorted_insert(list* listp, void* data, int (*compare) (const void*, const void*)) 
+{
     list* newitem=NULL;
     list* curitem=NULL;
     newitem=(list*)malloc(sizeof(list));
@@ -167,7 +168,8 @@ list* list_append(list* listp,void*data)
  * returns head of a list.
  */
 
-list* list_delete_item(list* item){
+list* list_delete_item(list* item)
+{
   list* r;
 
 

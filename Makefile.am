@@ -34,6 +34,7 @@ aide_SOURCES = src/aide.c include/aide.h \
 	include/db_config.h \
 	include/db_disk.h src/db_disk.c \
 	include/db_file.h src/db_file.c \
+	include/db_file_ram.h src/db_file_ram.c \
 	src/db_lex.l \
 	include/db_list.h src/db_list.c \
 	include/db_sql.h src/db_sql.c \

@@ -77,6 +77,7 @@ static void usage(int exitvalue)
 	    "  -A \"OPTION\"\t--after=\"OPTION\"\tAfter configuration file is read define OPTION\n"
 	    "  -r [reporter]\t--report=[reporter]\tWrite report output to [reporter] url\n"
 	    "  -V[level]\t--verbose=[level]\tSet debug message level to [level]\n"
+	    "  -R [val]\t--RAM=[val]\tSet RAM DB enable to [val] (only support 0/1)\n"
 	    "\n")
 	  );
   
@@ -102,6 +103,7 @@ static int read_param(int argc,char**argv)
   {
     { "help", no_argument, NULL, 'h' },
     { "verbose", optional_argument, NULL, 'V'},
+    { "RAM", optional_argument, NULL, 'R'},
     { "version", no_argument, NULL, 'v'},
     { "config", required_argument, NULL, 'c'},
     { "before", required_argument, NULL, 'B'},
@@ -117,7 +119,7 @@ static int read_param(int argc,char**argv)
   };
 
   while(1){
-    option = getopt_long(argc, argv, "hV::vc:B:A:r:iCuDE", options, &i);
+    option = getopt_long(argc, argv, "hV::vcR:B:A:r:iCuDE", options, &i);
     if(option==-1)
       break;
     switch(option)
@@ -141,6 +143,20 @@ static int read_param(int argc,char**argv)
 	  error(230,_("Setting verbosity to %s\n"),optarg);
 	}else{
 	  conf->verbose_level=20;
+	}
+	break;
+      }
+      case 'R':{
+	if(optarg!=NULL){
+	  conf->enable_RAM_DB=strtol(optarg,&err,10);
+	  if(*err!='\0' || (conf->enable_RAM_DB != 0 && conf->enable_RAM_DB != 1) || 
+	     errno==ERANGE){
+	    error(0, _("Illegal RAM DB enable value:%s\n Only support:0/1 \n"),optarg);
+	    exit(INVALID_ARGUMENT_ERROR);
+	  }
+	  error(230,_("Setting RAM DB to %s\n"),optarg);
+	}else{
+	  conf->enable_RAM_DB=1;
 	}
 	break;
       }
@@ -518,6 +534,8 @@ int main(int argc,char**argv)
     error(0, _("Invalid argument\n") );
     exit(INVALID_ARGUMENT_ERROR);
   }
+
+  fprintf(stdout, "+++ RAM:%d +++\n", conf->enable_RAM_DB);
   
   errorno=commandconf('C',conf->config_file);
 
