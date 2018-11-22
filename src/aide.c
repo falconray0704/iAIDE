@@ -347,14 +347,20 @@ static void setdefaults_before_config()
   conf->symlinks_found=0;
   conf->db_in_size=0;
   conf->db_in_order=NULL;
-  conf->db_in_url=NULL;
-  conf->db_in=NULL;
+  //conf->db_in_url=NULL;
+  //conf->db_in=NULL;
+  conf->dbc_in.db_url=NULL;
+  conf->dbc_in.db=NULL;
   conf->db_new_size=0;
   conf->db_new_order=NULL;
-  conf->db_new_url=NULL;
-  conf->db_new=NULL;
-  conf->db_out_url=NULL;
-  conf->db_out=NULL;
+  //conf->db_new_url=NULL;
+  //conf->db_new=NULL;
+  conf->dbc_new.db_url=NULL;
+  conf->dbc_new.db=NULL;
+  //conf->db_out_url=NULL;
+  //conf->db_out=NULL;
+  conf->dbc_out.db_url=NULL;
+  conf->dbc_out.db=NULL;
 
   conf->mdc_in=NULL;
   conf->mdc_out=NULL;
@@ -482,19 +488,19 @@ static void setdefaults_before_config()
 
 static void setdefaults_after_config()
 {
-  if(conf->db_in_url==NULL){
+  if(conf->dbc_in.db_url==NULL){
     url_t* u=NULL;
     u=(url_t*)malloc(sizeof(url_t));
     u->type=url_file;
     u->value=DEFAULT_DB;
-    conf->db_in_url=u;
+    conf->dbc_in.db_url=u;
   }
-  if(conf->db_out_url==NULL){
+  if(conf->dbc_out.db_url==NULL){
     url_t* u=NULL;
     u=(url_t*)malloc(sizeof(url_t));
     u->type=url_file;
     u->value=DEFAULT_DB_OUT;
-    conf->db_out_url=u;
+    conf->dbc_out.db_url=u;
   }
   if(conf->report_url==NULL){
     url_t* u=NULL;
@@ -555,7 +561,7 @@ int main(int argc,char**argv)
   conf->tree=gen_tree(conf->selrxlst,conf->negrxlst,conf->equrxlst);
   
   /* Let's do some sanity checks for the config */
-  if(cmpurl(conf->db_in_url,conf->db_out_url)==RETOK){
+  if(cmpurl(conf->dbc_in.db_url,conf->dbc_out.db_url)==RETOK){
     error(4,_("WARNING:Input and output database urls are the same.\n"));
     if((conf->action&DO_INIT)&&(conf->action&DO_COMPARE)){
       error(0,_("Input and output database urls cannot be the same "
@@ -568,7 +574,7 @@ int main(int argc,char**argv)
       exit(INVALID_ARGUMENT_ERROR);
     }
   };
-  if((conf->action&DO_DIFF)&&(!(conf->db_new_url)||!(conf->db_in_url))){
+  if((conf->action&DO_DIFF)&&(!(conf->dbc_new.db_url)||!(conf->dbc_in.db_url))){
     error(0,_("Must have both input databases defined for "
 	      "database compare.\n"));
     exit(INVALID_ARGUMENT_ERROR);

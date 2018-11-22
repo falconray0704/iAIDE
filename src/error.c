@@ -46,87 +46,95 @@ int cmp_url(url_t* url1,url_t* url2){
 
 int error_init(url_t* url,int initial)
 {
-  list* r=NULL;
-  FILE* fh=NULL;
-	int   sfac;
-  
-  if (url->type==url_database) {
-    conf->report_db++;
-    return RETOK;
-  }
-  
-  if(initial==1){
-    if (url->type==url_syslog) {
-      conf->report_syslog++;
-#ifdef HAVE_SYSLOG
-      conf->initial_report_url=url;
-      conf->initial_report_fd=NULL;
-      sfac=syslog_facility_lookup(url->value);
-      openlog(AIDE_IDENT,AIDE_LOGOPT, sfac);
-      
-      return RETOK;
-#endif
-#ifndef HAVE_SYSLOG
-      error(0,_("This binary has no syslog support\n"));
-      exit(INVALID_ARGUMENT_ERROR);
-#endif
+    list* r=NULL;
+    FILE* fh=NULL;
+    int   sfac;
+
+    if (url->type==url_database)
+    {
+        conf->report_db++;
+        return RETOK;
     }
+
+    if(initial==1)
+    {
+        if (url->type==url_syslog)
+        {
+            conf->report_syslog++;
+            #ifdef HAVE_SYSLOG
+            conf->initial_report_url=url;
+            conf->initial_report_fd=NULL;
+            sfac=syslog_facility_lookup(url->value);
+            openlog(AIDE_IDENT,AIDE_LOGOPT, sfac);
+
+            return RETOK;
+            #endif
+            #ifndef HAVE_SYSLOG
+            error(0,_("This binary has no syslog support\n"));
+            exit(INVALID_ARGUMENT_ERROR);
+            #endif
+        }
+        fh=be_init(0,url,0);
+        if(fh!=NULL)
+        {
+            conf->initial_report_fd=fh;
+            conf->initial_report_url=url;
+            return RETOK;
+        }
+        error(0,_("Cannot open %s for writing\n"),url->value);
+        exit(INVALID_ARGUMENT_ERROR);
+    }
+
+    if(conf->verbose_level>=200)
+    {
+        error(5,_("WARNING: Debug output enabled\n"));
+    }
+
+    for(r=conf->report_url;r;r=r->next)
+    {
+
+        if (cmp_url((url_t*)r->data,url))
+        {
+            error(5,_("WARNING: Already have report output %s\n"),url->value);
+            return RETOK;
+        }
+
+    }
+
+
+    if (url->type==url_syslog)
+    {
+        conf->report_syslog++;
+        #ifdef HAVE_SYSLOG
+        /* If you add support for facility changing in config
+        consider multiple calls of openlog.
+        This openlog MUST NOT mess up initial errorsto openlog.
+        RvdB 22/1/2006: the 2 openlog calls where the same before my
+        change, and they are still the same, I assume I did not brake anything
+        */
+        sfac=syslog_facility_lookup(url->value);
+        if(conf->report_syslog<2)
+            openlog(AIDE_IDENT,AIDE_LOGOPT, sfac);
+
+        return RETOK;
+        #endif
+        #ifndef HAVE_SYSLOG
+        error(0,_("This binary has no syslog support\n"));
+        return RETFAIL;
+        #endif
+    }
+
     fh=be_init(0,url,0);
-    if(fh!=NULL){
-      conf->initial_report_fd=fh;
-      conf->initial_report_url=url;
-      return RETOK;
+    if(fh!=NULL)
+    {
+        conf->report_fd=list_append(conf->report_fd,(void*)fh);
+        conf->report_url=list_append(conf->report_url,(void*)url);
+        return RETOK;
     }
+
     error(0,_("Cannot open %s for writing\n"),url->value);
-    exit(INVALID_ARGUMENT_ERROR);
-  }
-  
-  if(conf->verbose_level>=200){
-    error(5,_("WARNING: Debug output enabled\n"));
-  }
 
-  for(r=conf->report_url;r;r=r->next){
-    
-    if (cmp_url((url_t*)r->data,url)) {
-      
-      error(5,_("WARNING: Already have report output %s\n"),url->value);
-      return RETOK;
-    }
-    
-  }
-
-
-  if (url->type==url_syslog) {
-    conf->report_syslog++;
-#ifdef HAVE_SYSLOG
-    /* If you add support for facility changing in config 
-       consider multiple calls of openlog.
-       This openlog MUST NOT mess up initial errorsto openlog.
-       RvdB 22/1/2006: the 2 openlog calls where the same before my
-       change, and they are still the same, I assume I did not brake anything
-    */
-    sfac=syslog_facility_lookup(url->value);
-    if(conf->report_syslog<2)
-      openlog(AIDE_IDENT,AIDE_LOGOPT, sfac);
-
-    return RETOK;
-#endif
-#ifndef HAVE_SYSLOG
-    error(0,_("This binary has no syslog support\n"));
     return RETFAIL;
-#endif
-  }
-  
-  fh=be_init(0,url,0);
-  if(fh!=NULL) {
-    conf->report_fd=list_append(conf->report_fd,(void*)fh);
-    conf->report_url=list_append(conf->report_url,(void*)url);
-    return RETOK;
-  }
-  
-  error(0,_("Cannot open %s for writing\n"),url->value);
-
-  return RETFAIL;
 
 }
 

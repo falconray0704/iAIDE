@@ -361,13 +361,17 @@ void sig_handler(int signum)
   return;
 }
 
-char *expand_tilde(char *path) {
+char *expand_tilde(char *path)
+{
     char *homedir, *full;
     size_t path_len, homedir_len, full_len;
 
-    if (path != NULL) {
-        if (path[0] == '~') {
-            if((homedir=getenv("HOME")) != NULL) {
+    if (path != NULL)
+    {
+        if (path[0] == '~')
+        {
+            if((homedir=getenv("HOME")) != NULL)
+            {
                 path_len = strlen(path+sizeof(char));
                 homedir_len = strlen(homedir);
                 full_len = homedir_len+path_len;
@@ -378,10 +382,14 @@ char *expand_tilde(char *path) {
                 free(path);
                 /* Don't free(homedir); because it is not safe on some platforms */
                 path = full;
-            } else {
+            }
+            else
+            {
                 error(3, _("Variable name 'HOME' not found in environment. '~' cannot be expanded\n"));
             }
-        } else if (path[0] == '\\' && path[1] == '~') {
+        }
+        else if (path[0] == '\\' && path[1] == '~')
+        {
             path += sizeof(char);
         }
     }

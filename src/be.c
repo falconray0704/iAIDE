@@ -119,254 +119,316 @@ static char* get_first_value(char** in){
 
 FILE* be_init(int inout,url_t* u,int iszipped)
 {
-  FILE* fh=NULL;
-  long a=0;
-  char* err=NULL;
-  int fd;
+    FILE* fh=NULL;
+    long a=0;
+    char* err=NULL;
+    int fd;
 #if HAVE_FCNTL && HAVE_FTRUNCATE
-  struct flock fl;
+    struct flock fl;
 #endif
 
-  if (u==NULL) {
-    return NULL;
-  }
-
-  switch (u->type) {
-  case url_file : {
-    u->value = expand_tilde(u->value);
-    error(200,_("Opening file \"%s\" for %s\n"),u->value,inout?"r":"w+");
-#if HAVE_FCNTL && HAVE_FTRUNCATE
-    fd=open(u->value,inout?O_RDONLY:O_CREAT|O_RDWR,0666);
-#else
-    fd=open(u->value,inout?O_RDONLY:O_CREAT|O_RDWR|O_TRUNC,0666);
-#endif
-    error(255,"Opened file \"%s\" with fd=%i\n",u->value,fd);
-    if(fd==-1) {
-      error(0,_("Couldn't open file %s for %s"),u->value,
-	    inout?"reading\n":"writing\n");
-      return NULL;
-    }
-#if HAVE_FCNTL && HAVE_FTRUNCATE
-    if(!inout) {
-      fl.l_type = F_WRLCK;
-      fl.l_whence = SEEK_SET;
-      fl.l_start = 0;
-      fl.l_len = 0;
-      if (fcntl(fd, F_SETLK, &fl) == -1) {
-	if (fcntl(fd, F_SETLK, &fl) == -1)
-	  error(0,_("File %s is locked by another process.\n"),u->value);
-	else
-	  error(0,_("Cannot get lock for file %s"),u->value);
-	return NULL;
-      }
-      if(ftruncate(fd,0)==-1)
-	error(0,_("Error truncating file %s"),u->value);
-
-    }
-#endif
-#ifdef WITH_ZLIB
-    if(iszipped && !inout){
-      fh=gzdopen(fd,"wb9");
-      if(fh==NULL){
-	error(0,_("Couldn't open file %s for %s"),u->value,
-	      inout?"reading\n":"writing\n");
-      }
-    }
-    else{
-#endif
-      fh=fdopen(fd,inout?"r":"w+");
-      if(fh==NULL){
-	error(0,_("Couldn't open file %s for %s"),u->value,
-	      inout?"reading\n":"writing\n");
-      }
-#ifdef WITH_ZLIB
-    }
-#endif
-    return fh;
-    }
-  case url_stdout : {
-#ifdef WITH_ZLIB
-    if(iszipped){
-      return gzdopen(fileno(stdout),"wb");
-    }
-    else{
-#endif
-    return stdout;
-#ifdef WITH_ZLIB
-    }
-#endif
-  }
-  case url_stdin : {
-#ifdef WITH_ZLIB
-    if(iszipped){
-      return gzdopen(fileno(stdin),"r");
-    }
-    else{
-#endif
-      return stdin;
-#ifdef WITH_ZLIB
-    }
-#endif
-  }
-  case url_stderr : {
-#ifdef WITH_ZLIB
-    if(iszipped){
-      return gzdopen(fileno(stderr),"wb");
-    }
-    else{
-#endif
-      return stderr;
-#ifdef WITH_ZLIB
-    }
-#endif
-  }
-  case url_fd : {
-    a=strtol(u->value,&err,10);
-    if(*err!='\0'||errno==ERANGE){
-      error(0,"Illegal file descriptor value:%s\n",u->value);
-    }
-#ifdef WITH_ZLIB
-    if(iszipped && !inout){
-      fh=gzdopen(a,"w");
-      if(fh==NULL){
-	error(0,"Couldn't reopen file descriptor %li\n",a);
-      }
-    }
-    else{
-#endif
-      fh=fdopen(a,inout?"r":"w");
-      if(fh==NULL){
-	error(0,"Couldn't reopen file descriptor %li\n",a);
-      }
-#ifdef WITH_ZLIB
-    }
-#endif
-    return fh;
-  }
-#ifdef WITH_PSQL
-  case url_sql : {
-    char *pghost, *pgport, *pgoptions, *pgtty, *dbName, *login, *pwd;
-    char *tmp,*tmp2;
-    
-    psql_data* ret = (psql_data*) malloc(sizeof(psql_data)*1);
-    
-    if (ret==NULL) {
-      error(0,"Not enough memory for postgres sql connection\n");
-      return ret;
-    }
-    
-    tmp=strdup(u->value);
-    tmp2=tmp;
-    
-    pgtty=NULL;pgoptions=NULL;
-    
-    if ((pghost=get_first_value(&tmp)) == NULL) {
-      error(0,"Must define host for Postgres sql connection\n");
-      free(tmp2);
-      return NULL;
-    } else {
-      error(100,"Psql host is %s\n",pghost);
-      if ((pgport=get_first_value(&tmp)) == NULL) {
-	error(0,"Must define port for Postgres sql connection\n");
-	free(tmp2);
-	return NULL;
-      } else {
-	error(100,"Psql port is %s\n",pgport);
-	if ((dbName=get_first_value(&tmp)) == NULL) {
-	  error(0,"Must define name for database for Postgres sql connection\n");
-	  free(tmp2);
-	  return NULL;
-	} else {
-	  error(100,"Psql db is %s\n",dbName);
-	  if ((login=get_first_value(&tmp)) == NULL) {
-	    error(0,"Must define login for Postgres sql connection\n");
-	    free(tmp2);
-	    return NULL;
-	  } else {
-	    error(100,"Psql login is %s\n",login);
-	    if ((pwd=get_first_value(&tmp)) == NULL) {
-	      error(0,"Must define password for database for Postgres sql connection\n");
-	      free(tmp2);
-	      return NULL;
-	    } else {
-	      error(100,"Psql passwd is %s\n",pwd);
-	      if ((ret->table=get_first_value(&tmp))==NULL) {
-		error(0,"Must define table for sql..\n");
-		free(tmp2);
-		return NULL;
-	      } else {
-		if (ret->table[0]=='\0') {
-		  error(0,"Must define table for sql..\n");
-		  free(tmp2);
-		  return NULL;
-		} else {
-		  /* everything went ok.. */
-		}
-	      }
-	    }
-	  }
-	}
-      }
-    }
-   
-    if (login[0] == '\0' ) {
-      login = NULL;
-    }
-    if (pwd[0] == '\0' ) {
-      pwd = NULL;
-    }
-    
-    ret->conn = PQsetdbLogin(pghost,pgport,pgoptions,pgtty,dbName,login,pwd);
-    if (PQstatus(ret->conn) == CONNECTION_BAD){
-      error(0,"Postgres sql error during connection\n");
-      free(tmp2);
-      return NULL;
-    }
-    /* Otherwise we would become to situation that name of table would
-       be freeed 
-    */
-    ret->table = strdup(ret->table);
-    
-    /* And now we have made a connection to database.. 
-       Next thing we do is to begin a new transaction block */
-    
-    ret->res = PQexec(ret->conn, "BEGIN");
-    
-    if (!ret->res || PQresultStatus(ret->res) != PGRES_COMMAND_OK) {
-      error(0,"BEGIN command failed... \n");
-      PQclear(ret->res);
-      free(ret);
-      ret=NULL;
-    } else {
-      PQclear(ret->res);
-      if ((inout?be_sql_readinit(ret):RETOK)!=RETOK) {
-	error(255,"Something went wrong with sql backend init.\n");
-	return NULL;
-      }
-    }
-    free(tmp2);
-    return ret;
-  }
-#endif
-#ifdef WITH_CURL
-  case url_http:
-  case url_https:
-  case url_ftp:
+    if (u==NULL)
     {
-      error(200,_("Opening curl \"%s\" for %s\n"),u->value,inout?"r":"w+");
-      if (iszipped) {
-	return NULL;
-      }
-      return url_fopen(u->value,inout?"r":"w+");
+        return NULL;
     }
-#endif /* WITH CURL */
-  default:{
-    error(0,"Unsupported backend: %i", u->type);
+
+    switch (u->type)
+    {
+        case url_RAM :
+        {
+            u->value = expand_tilde(u->value);
+            error(200,_("Opening file \"%s\" for %s\n"),u->value,inout?"r":"w+");
+
+            return fh;
+        }
+        case url_file :
+        {
+            u->value = expand_tilde(u->value);
+            error(200,_("Opening file \"%s\" for %s\n"),u->value,inout?"r":"w+");
+            #if HAVE_FCNTL && HAVE_FTRUNCATE
+                fd=open(u->value,inout?O_RDONLY:O_CREAT|O_RDWR,0666);
+            #else
+                fd=open(u->value,inout?O_RDONLY:O_CREAT|O_RDWR|O_TRUNC,0666);
+            #endif
+            error(255,"Opened file \"%s\" with fd=%i\n",u->value,fd);
+            if(fd==-1)
+            {
+                error(0,_("Couldn't open file %s for %s"),u->value,
+                        inout?"reading\n":"writing\n");
+                return NULL;
+            }
+            #if HAVE_FCNTL && HAVE_FTRUNCATE
+            if(!inout)
+            {
+                fl.l_type = F_WRLCK;
+                fl.l_whence = SEEK_SET;
+                fl.l_start = 0;
+                fl.l_len = 0;
+                if (fcntl(fd, F_SETLK, &fl) == -1)
+                {
+                    if (fcntl(fd, F_SETLK, &fl) == -1)
+                        error(0,_("File %s is locked by another process.\n"),u->value);
+                    else
+                        error(0,_("Cannot get lock for file %s"),u->value);
+                    return NULL;
+                }
+                if(ftruncate(fd,0)==-1)
+                    error(0,_("Error truncating file %s"),u->value);
+
+            }
+            #endif
+            #ifdef WITH_ZLIB
+            if(iszipped && !inout)
+            {
+                fh=gzdopen(fd,"wb9");
+                if(fh==NULL)
+                {
+                    error(0,_("Couldn't open file %s for %s"),u->value, inout?"reading\n":"writing\n");
+                }
+            }
+            else
+            {
+            #endif
+                fh=fdopen(fd,inout?"r":"w+");
+                if(fh==NULL)
+                {
+                    error(0,_("Couldn't open file %s for %s"),u->value, inout?"reading\n":"writing\n");
+                }
+            #ifdef WITH_ZLIB
+            }
+            #endif
+            return fh;
+        }
+        case url_stdout :
+        {
+            #ifdef WITH_ZLIB
+            if(iszipped)
+            {
+                return gzdopen(fileno(stdout),"wb");
+            }
+            else
+            {
+            #endif
+                return stdout;
+            #ifdef WITH_ZLIB
+            }
+            #endif
+        }
+        case url_stdin :
+        {
+            #ifdef WITH_ZLIB
+            if(iszipped)
+            {
+                return gzdopen(fileno(stdin),"r");
+            }
+            else
+            {
+            #endif
+                return stdin;
+            #ifdef WITH_ZLIB
+            }
+            #endif
+        }
+        case url_stderr :
+        {
+            #ifdef WITH_ZLIB
+            if(iszipped)
+            {
+                return gzdopen(fileno(stderr),"wb");
+            }
+            else
+            {
+            #endif
+                return stderr;
+            #ifdef WITH_ZLIB
+            }
+            #endif
+        }
+        case url_fd :
+        {
+            a=strtol(u->value,&err,10);
+            if(*err!='\0'||errno==ERANGE)
+            {
+                error(0,"Illegal file descriptor value:%s\n",u->value);
+            }
+            #ifdef WITH_ZLIB
+            if(iszipped && !inout)
+            {
+                fh=gzdopen(a,"w");
+                if(fh==NULL)
+                {
+                    error(0,"Couldn't reopen file descriptor %li\n",a);
+                }
+            }
+            else
+            {
+            #endif
+                fh=fdopen(a,inout?"r":"w");
+                if(fh==NULL)
+                {
+                    error(0,"Couldn't reopen file descriptor %li\n",a);
+                }
+            #ifdef WITH_ZLIB
+            }
+            #endif
+            return fh;
+        }
+        #ifdef WITH_PSQL
+        case url_sql :
+        {
+            char *pghost, *pgport, *pgoptions, *pgtty, *dbName, *login, *pwd;
+            char *tmp,*tmp2;
+
+            psql_data* ret = (psql_data*) malloc(sizeof(psql_data)*1);
+
+            if (ret==NULL)
+            {
+                error(0,"Not enough memory for postgres sql connection\n");
+                return ret;
+            }
+
+            tmp=strdup(u->value);
+            tmp2=tmp;
+
+            pgtty=NULL;pgoptions=NULL;
+
+            if ((pghost=get_first_value(&tmp)) == NULL)
+            {
+                error(0,"Must define host for Postgres sql connection\n");
+                free(tmp2);
+                return NULL;
+            }
+            else
+            {
+                error(100,"Psql host is %s\n",pghost);
+                if ((pgport=get_first_value(&tmp)) == NULL)
+                {
+                    error(0,"Must define port for Postgres sql connection\n");
+                    free(tmp2);
+                    return NULL;
+                }
+                else
+                {
+                    error(100,"Psql port is %s\n",pgport);
+                    if ((dbName=get_first_value(&tmp)) == NULL)
+                    {
+                        error(0,"Must define name for database for Postgres sql connection\n");
+                        free(tmp2);
+                        return NULL;
+                    }
+                    else
+                    {
+                        error(100,"Psql db is %s\n",dbName);
+                        if ((login=get_first_value(&tmp)) == NULL)
+                        {
+                            error(0,"Must define login for Postgres sql connection\n");
+                            free(tmp2);
+                            return NULL;
+                        }
+                        else
+                        {
+                            error(100,"Psql login is %s\n",login);
+                            if ((pwd=get_first_value(&tmp)) == NULL)
+                            {
+                                error(0,"Must define password for database for Postgres sql connection\n");
+                                free(tmp2);
+                                return NULL;
+                            }
+                            else
+                            {
+                                error(100,"Psql passwd is %s\n",pwd);
+                                if ((ret->table=get_first_value(&tmp))==NULL)
+                                {
+                                    error(0,"Must define table for sql..\n");
+                                    free(tmp2);
+                                    return NULL;
+                                }
+                                else
+                                {
+                                    if (ret->table[0]=='\0')
+                                    {
+                                        error(0,"Must define table for sql..\n");
+                                        free(tmp2);
+                                        return NULL;
+                                    }
+                                    else
+                                    {
+                                        /* everything went ok.. */
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (login[0] == '\0' )
+            {
+                login = NULL;
+            }
+            if (pwd[0] == '\0' )
+            {
+                pwd = NULL;
+            }
+
+            ret->conn = PQsetdbLogin(pghost,pgport,pgoptions,pgtty,dbName,login,pwd);
+            if (PQstatus(ret->conn) == CONNECTION_BAD)
+            {
+                error(0,"Postgres sql error during connection\n");
+                free(tmp2);
+                return NULL;
+            }
+            /* Otherwise we would become to situation that name of table would
+            be freeed
+            */
+            ret->table = strdup(ret->table);
+
+            /* And now we have made a connection to database..
+            Next thing we do is to begin a new transaction block */
+
+            ret->res = PQexec(ret->conn, "BEGIN");
+
+            if (!ret->res || PQresultStatus(ret->res) != PGRES_COMMAND_OK)
+            {
+                error(0,"BEGIN command failed... \n");
+                PQclear(ret->res);
+                free(ret);
+                ret=NULL;
+            }
+            else
+            {
+                PQclear(ret->res);
+                if ((inout?be_sql_readinit(ret):RETOK)!=RETOK)
+                {
+                    error(255,"Something went wrong with sql backend init.\n");
+                    return NULL;
+                }
+            }
+            free(tmp2);
+            return ret;
+        }
+        #endif
+        #ifdef WITH_CURL
+        case url_http:
+        case url_https:
+        case url_ftp:
+        {
+            error(200,_("Opening curl \"%s\" for %s\n"),u->value,inout?"r":"w+");
+            if (iszipped)
+            {
+                return NULL;
+            }
+            return url_fopen(u->value,inout?"r":"w+");
+        }
+        #endif /* WITH CURL */
+        default:
+        {
+            error(0,"Unsupported backend: %i", u->type);
+            return NULL;
+        }
+    }
+    /* Not reached */
     return NULL;
-  }    
-  }
-  /* Not reached */
-  return NULL;
 
 }
 

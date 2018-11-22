@@ -8,11 +8,19 @@ doc/aide.conf
 src/.deps/
 src/.dirstamp
 stamp-h1
+doc/aide.1
+doc/aide.conf.5
+src/conf_lex.c
+src/conf_yacc.c
+src/conf_yacc.h
+src/db_lex.c
+
 
 tags
 .idea
 CMakeLists.txt
 cmake-build-debug
+
 
 # Prerequisites
 *.d

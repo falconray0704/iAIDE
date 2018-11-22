@@ -252,8 +252,8 @@ int db_input_wrapper(char* buf, int max_size, int db)
     md=&(conf->dboldmd);
 #endif
     
-    db_filep=&(conf->db_in);
-    
+    db_filep=&(conf->dbc_in.db);
+
 #ifdef WITH_ZLIB
     db_gzp=&(conf->db_gzin);
 #endif
@@ -269,7 +269,7 @@ int db_input_wrapper(char* buf, int max_size, int db)
     md=&(conf->dbnewmd);
 #endif
     
-    db_filep=&(conf->db_new);
+    db_filep=&(conf->dbc_new.db);
     
 #ifdef WITH_ZLIB
     db_gzp=&(conf->db_gznew);
@@ -599,7 +599,8 @@ void do_undefine(char* name)
   }
 }
 
-int handle_endif(int doit,int allow_else){
+int handle_endif(int doit,int allow_else)
+{
   
   if(doit){
     int count=1;
@@ -757,7 +758,8 @@ void do_groupdef(char* group,DB_ATTR_TYPE value)
   conf->groupsyms=list_append(conf->groupsyms,(void*)s);
 }
 
-RESTRICTION_TYPE get_restrictionval(char* ch) {
+RESTRICTION_TYPE get_restrictionval(char* ch)
+{
     if (strcmp(ch, "f") == 0) { return RESTRICTION_FT_REG; }
     else if (strcmp(ch, "d") == 0) { return RESTRICTION_FT_DIR; }
     else if (strcmp(ch, "p") == 0) { return RESTRICTION_FT_FIFO; }
@@ -789,15 +791,15 @@ void do_dbdef(int dbtype,char* val)
 
   switch(dbtype) {
   case DB_OLD: {
-    conf_db_url=&(conf->db_in_url);
+    conf_db_url=&(conf->dbc_in.db_url);
     break;
   }
   case DB_WRITE: {
-    conf_db_url=&(conf->db_out_url);
+    conf_db_url=&(conf->dbc_out.db_url);
     break;
   }
   case DB_NEW: {
-    conf_db_url=&(conf->db_new_url);
+    conf_db_url=&(conf->dbc_new.db_url);
     break;
   }
   default : {
@@ -827,7 +829,7 @@ void do_dbdef(int dbtype,char* val)
 	error(0,_("Unsupported output URL-type:%s\n"),val);
       }
       else{
-	conf->db_out_url=u;
+	conf->dbc_out.db_url=u;
 	error(200,_("Output database set to \"%s\" \"%s\"\n"),val,u->value);
       }
       break;
@@ -841,7 +843,7 @@ void do_dbindef(char* val)
 {
   url_t* u=NULL;
 
-  if(conf->db_in_url==NULL){
+  if(conf->dbc_in.db_url==NULL){
     u=parse_url(val);
     /* FIXME Check the URL if you add support for databases that cannot be 
      * both input and output urls */
@@ -850,7 +852,7 @@ void do_dbindef(char* val)
       error(0,_("Unsupported input URL-type:%s\n"),val);
     }
     else {
-      conf->db_in_url=u;
+      conf->dbc_in.db_url=u;
     }
   }
 
@@ -863,7 +865,7 @@ void do_dboutdef(char* val)
 
   error(200,_("Setting output database \"%s\"\n"),val);
 
-  if(conf->db_out_url==NULL){
+  if(conf->dbc_out.db_url==NULL){
     u=parse_url(val);
     /* FIXME Check the URL if you add support for databases that cannot be 
      * both input and output urls */
@@ -871,7 +873,7 @@ void do_dboutdef(char* val)
       error(0,_("Unsupported output URL-type:%s\n"),val);
     }
     else{
-      conf->db_out_url=u;
+      conf->dbc_out.db_url=u;
       error(200,_("Output database set to \"%s\" \"%s\"\n"),val,u->value);
     }
   } else {
@@ -917,7 +919,8 @@ void do_verbdef(char* val)
   }
 }
 
-void do_rootprefix(char* val) {
+void do_rootprefix(char* val)
+{
     if (conf->root_prefix_length == 0) {
         conf->root_prefix=val;
         conf->root_prefix_length=strlen(conf->root_prefix);
@@ -992,7 +995,8 @@ void do_report_ignore_e2fsattrs(char* val) {
 const char* aide_key_7=CONFHMACKEY_07;
 const char* db_key_7=DBHMACKEY_07;
 
-void* get_conf_key(void) {
+void* get_conf_key(void)
+{
   void* r;
   char* m=(char*)malloc(strlen(aide_key_1)+
 			strlen(aide_key_2)+
@@ -1023,7 +1027,8 @@ void* get_conf_key(void) {
   return r;
 }
 
-size_t get_conf_key_len(void) {
+size_t get_conf_key_len(void)
+{
   size_t len=0;
   char* m=(char*)malloc(strlen(aide_key_1)+
 			strlen(aide_key_2)+
@@ -1054,7 +1059,8 @@ size_t get_conf_key_len(void) {
   return len;
 }
 
-void* get_db_key(void) {
+void* get_db_key(void)
+{
   void* r;
   char* m=(char*)malloc(strlen(db_key_1)+
 			strlen(db_key_2)+
@@ -1085,7 +1091,8 @@ void* get_db_key(void) {
   return r;
 }
 
-size_t get_db_key_len(void) {
+size_t get_db_key_len(void)
+{
   size_t len=0;
   char* m=(char*)malloc(strlen(db_key_1)+
 			strlen(db_key_2)+

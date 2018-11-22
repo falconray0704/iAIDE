@@ -639,10 +639,10 @@ static void print_report_header() {
     if(conf->action&(DO_COMPARE|DO_DIFF)) {
         error(0,_(" found %sdifferences between %s%s!!\n"), (nadd||nrem||nchg)?"":"NO ", conf->action&DO_COMPARE?_("database and filesystem"):_("the two databases"), (nadd||nrem||nchg)?"":_(". Looks okay"));
         if(conf->action&(DO_INIT)) {
-            error(0,_("New AIDE database written to %s\n"),conf->db_out_url->value);
+            error(0,_("New AIDE database written to %s\n"),conf->dbc_out.db_url->value);
         }
     } else {
-        error(0,_(" initialized database at %s\n"),conf->db_out_url->value);
+        error(0,_(" initialized database at %s\n"),conf->dbc_out.db_url->value);
     }
 
     if(conf->config_version)

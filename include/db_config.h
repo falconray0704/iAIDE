@@ -306,17 +306,17 @@ typedef struct _DB_Container {
 
 typedef struct db_config {
 
-  url_t* db_in_url;
-  FILE* db_in;
-  //DB_Container db_in;
+  //url_t* db_in_url;
+  //FILE* db_in;
+  DB_Container dbc_in;
   
-  url_t* db_new_url;
-  FILE* db_new;
-  //DB_Container db_new;
+  //url_t* db_new_url;
+  //FILE* db_new;
+  DB_Container dbc_new;
   
-  url_t* db_out_url;
-  FILE* db_out;
-  //DB_Container db_out;
+  //url_t* db_out_url;
+  //FILE* db_out;
+  DB_Container dbc_out;
   
   int config_check;
 
