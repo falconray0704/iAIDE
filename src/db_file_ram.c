@@ -118,7 +118,7 @@ int dofflush_ram(void)
     retval=Z_OK;
   }else {
 #endif
-    //retval=fflush(conf->dbc_out.db); 
+    //retval=fflush((FILE*)conf->dbc_out.dbP); 
 #ifdef WITH_ZLIB
   }
 #endif
@@ -161,7 +161,7 @@ int dofprintf_ram( const char* s,...)
   }else{
 #endif
     /* writing is ok with fwrite with curl.. */
-    retval=fwrite(temp,1,retval,conf->dbc_out.db);
+    retval=fwrite(temp,1,retval,(FILE*)conf->dbc_out.dbP);
 #ifdef WITH_ZLIB
   }
 #endif
@@ -314,7 +314,7 @@ char** db_readline_file_ram(int db)
     
     db_osize=&(conf->db_in_size);
     db_order=&(conf->db_in_order);
-    db_filep=&(conf->dbc_in.db);
+    db_filep=(FILE**)&(conf->dbc_in.dbP);
     db_url=conf->dbc_in.db_url;
     db_lineno=&db_in_lineno;
     break;
@@ -328,7 +328,7 @@ char** db_readline_file_ram(int db)
     
     db_osize=&(conf->db_new_size);
     db_order=&(conf->db_new_order);
-    db_filep=&(conf->dbc_new.db);
+    db_filep=(FILE*)&(conf->dbc_new.dbP);
     db_url=conf->dbc_new.db_url;
     db_lineno=&db_new_lineno;
     break;
@@ -880,54 +880,54 @@ int db_writeline_file_ram(db_line* line,db_config* dbconf, url_t* url)
   for(i=0;i<dbconf->db_out_size;i++){
     switch (dbconf->db_out_order[i]) {
     case db_filename : {
-      db_writechar_ram(line->filename,dbconf->dbc_out.db,i);
+      db_writechar_ram(line->filename,(FILE*)dbconf->dbc_out.dbP,i);
       break;
     }
     case db_linkname : {
-      db_writechar_ram(line->linkname,dbconf->dbc_out.db,i);
+      db_writechar_ram(line->linkname,(FILE*)dbconf->dbc_out.dbP,i);
       break;
     }
     case db_bcount : {
-      db_writeint_ram(line->bcount,dbconf->dbc_out.db,i);
+      db_writeint_ram(line->bcount,(FILE*)dbconf->dbc_out.dbP,i);
       break;
     }
 
     case db_mtime : {
-      db_write_time_base64_ram(line->mtime,dbconf->dbc_out.db,i);
+      db_write_time_base64_ram(line->mtime,(FILE*)dbconf->dbc_out.dbP,i);
       break;
     }
     case db_atime : {
-      db_write_time_base64_ram(line->atime,dbconf->dbc_out.db,i);
+      db_write_time_base64_ram(line->atime,(FILE*)dbconf->dbc_out.dbP,i);
       break;
     }
     case db_ctime : {
-      db_write_time_base64_ram(line->ctime,dbconf->dbc_out.db,i);
+      db_write_time_base64_ram(line->ctime,(FILE*)dbconf->dbc_out.dbP,i);
       break;
     }
     case db_inode : {
-      db_writeint_ram(line->inode,dbconf->dbc_out.db,i);
+      db_writeint_ram(line->inode,(FILE*)dbconf->dbc_out.dbP,i);
       break;
     }
     case db_lnkcount : {
-      db_writeint_ram(line->nlink,dbconf->dbc_out.db,i);
+      db_writeint_ram(line->nlink,(FILE*)dbconf->dbc_out.dbP,i);
       break;
     }
     case db_uid : {
-      db_writeint_ram(line->uid,dbconf->dbc_out.db,i);
+      db_writeint_ram(line->uid,(FILE*)dbconf->dbc_out.dbP,i);
       break;
     }
     case db_gid : {
-      db_writeint_ram(line->gid,dbconf->dbc_out.db,i);
+      db_writeint_ram(line->gid,(FILE*)dbconf->dbc_out.dbP,i);
       break;
     }
     case db_size : {
-      db_writelong_ram(line->size,dbconf->dbc_out.db,i);
+      db_writelong_ram(line->size,(FILE*)dbconf->dbc_out.dbP,i);
       break;
     }
     case db_md5 : {
       db_write_byte_base64_ram(line->md5,
 			   HASH_MD5_LEN,
-			   dbconf->dbc_out.db,i,
+			   (FILE*)dbconf->dbc_out.dbP,i,
 			   DB_MD5,line->attr);
 	
       break;
@@ -935,7 +935,7 @@ int db_writeline_file_ram(db_line* line,db_config* dbconf, url_t* url)
     case db_sha1 : {
       db_write_byte_base64_ram(line->sha1,
 			   HASH_SHA1_LEN,
-			   dbconf->dbc_out.db,i,
+			   (FILE*)dbconf->dbc_out.dbP,i,
 			   DB_SHA1,line->attr);
 
       break;
@@ -943,53 +943,53 @@ int db_writeline_file_ram(db_line* line,db_config* dbconf, url_t* url)
     case db_rmd160 : {
       db_write_byte_base64_ram(line->rmd160,
 			   HASH_RMD160_LEN,
-			   dbconf->dbc_out.db,i,
+			   (FILE*)dbconf->dbc_out.dbP,i,
 			   DB_RMD160,line->attr);
       break;
     }
     case db_tiger : {
       db_write_byte_base64_ram(line->tiger,
 			   HASH_TIGER_LEN,
-			   dbconf->dbc_out.db,i,
+			   (FILE*)dbconf->dbc_out.dbP,i,
 			   DB_TIGER,line->attr);
       break;
     }
     case db_perm : {
-      db_writeoct_ram(line->perm,dbconf->dbc_out.db,i);
+      db_writeoct_ram(line->perm,(FILE*)dbconf->dbc_out.dbP,i);
       break;
     }
     case db_crc32 : {
       db_write_byte_base64_ram(line->crc32,
 			   HASH_CRC32_LEN,
-			   dbconf->dbc_out.db,i,
+			   (FILE*)dbconf->dbc_out.dbP,i,
 			   DB_CRC32,line->attr);
       break;
     }
     case db_crc32b : {
       db_write_byte_base64_ram(line->crc32b,
 			   HASH_CRC32B_LEN,
-			   dbconf->dbc_out.db,i,
+			   (FILE*)dbconf->dbc_out.dbP,i,
 			   DB_CRC32B,line->attr);
       break;
     }
     case db_haval : {
       db_write_byte_base64_ram(line->haval,
 			   HASH_HAVAL256_LEN,
-			   dbconf->dbc_out.db,i,
+			   (FILE*)dbconf->dbc_out.dbP,i,
 			   DB_HAVAL,line->attr);
       break;
     }
     case db_gost : {
       db_write_byte_base64_ram(line->gost ,
 			   HASH_GOST_LEN,
-			   dbconf->dbc_out.db,i,
+			   (FILE*)dbconf->dbc_out.dbP,i,
 			   DB_GOST,line->attr);
       break;
     }
     case db_sha256 : {
       db_write_byte_base64_ram(line->sha256,
 			   HASH_SHA256_LEN,
-			   dbconf->dbc_out.db,i,
+			   (FILE*)dbconf->dbc_out.dbP,i,
 			   DB_SHA256,line->attr);
 
       break;
@@ -997,7 +997,7 @@ int db_writeline_file_ram(db_line* line,db_config* dbconf, url_t* url)
     case db_sha512 : {
       db_write_byte_base64_ram(line->sha512,
 			   HASH_SHA512_LEN,
-			   dbconf->dbc_out.db,i,
+			   (FILE*)dbconf->dbc_out.dbP,i,
 			   DB_SHA512,line->attr);
 
       break;
@@ -1005,18 +1005,18 @@ int db_writeline_file_ram(db_line* line,db_config* dbconf, url_t* url)
     case db_whirlpool : {
       db_write_byte_base64_ram(line->whirlpool,
 			   HASH_WHIRLPOOL_LEN,
-			   dbconf->dbc_out.db,i,
+			   (FILE*)dbconf->dbc_out.dbP,i,
 			   DB_WHIRLPOOL,line->attr);
 
       break;
     }
     case db_attr : {
-      db_writelong_ram(line->attr, dbconf->dbc_out.db,i);
+      db_writelong_ram(line->attr, (FILE*)dbconf->dbc_out.dbP,i);
       break;
     }
 #ifdef WITH_ACL
     case db_acl : {
-      db_writeacl_ram(line->acl,dbconf->dbc_out.db,i);
+      db_writeacl_ram(line->acl,(FILE*)dbconf->dbc_out.dbP,i);
       break;
     }
 #endif
@@ -1026,19 +1026,19 @@ int db_writeline_file_ram(db_line* line,db_config* dbconf, url_t* url)
         
         if (!line->xattrs)
         {
-          db_writelong_ram(0, dbconf->dbc_out.db, i);
+          db_writelong_ram(0, (FILE*)dbconf->dbc_out.dbP, i);
           break;
         }
         
-        db_writelong_ram(line->xattrs->num, dbconf->dbc_out.db, i);
+        db_writelong_ram(line->xattrs->num, (FILE*)dbconf->dbc_out.dbP, i);
         
         xattr = line->xattrs->ents;
         while (num < line->xattrs->num)
         {
           dofprintf_ram(",");
-          db_writechar_ram(xattr->key, dbconf->dbc_out.db, 0);
+          db_writechar_ram(xattr->key, (FILE*)dbconf->dbc_out.dbP, 0);
           dofprintf_ram(",");
-          db_write_byte_base64_ram(xattr->val, xattr->vsz, dbconf->dbc_out.db, 0, 1, 1);
+          db_write_byte_base64_ram(xattr->val, xattr->vsz, (FILE*)dbconf->dbc_out.dbP, 0, 1, 1);
           
           ++xattr;
           ++num;
@@ -1046,17 +1046,17 @@ int db_writeline_file_ram(db_line* line,db_config* dbconf, url_t* url)
       break;
     }
     case db_selinux : {
-	db_write_byte_base64_ram((byte*)line->cntx, 0, dbconf->dbc_out.db, i, 1, 1);
+	db_write_byte_base64_ram((byte*)line->cntx, 0, (FILE*)dbconf->dbc_out.dbP, i, 1, 1);
       break;
     }
 #ifdef WITH_E2FSATTRS
     case db_e2fsattrs : {
-      db_writelong_ram(line->e2fsattrs,dbconf->dbc_out.db,i);
+      db_writelong_ram(line->e2fsattrs,(FILE*)dbconf->dbc_out.dbP,i);
       break;
     }
 #endif
     case db_checkmask : {
-      db_writeoct_ram(line->attr,dbconf->dbc_out.db,i);
+      db_writeoct_ram(line->attr,(FILE*)dbconf->dbc_out.dbP,i);
       break;
     }
     default : {
@@ -1083,7 +1083,7 @@ int db_close_file_ram(db_config* dbconf)
   byte* dig=NULL;
   char* digstr=NULL;
 
-  if(dbconf->dbc_out.db
+  if((FILE*)dbconf->dbc_out.dbP
 #ifdef WITH_ZLIB
      || dbconf->db_gzout
 #endif
@@ -1106,7 +1106,7 @@ int db_close_file_ram(db_config* dbconf)
 #endif
 
 #ifndef WITH_ZLIB
-  if(fclose(dbconf->dbc_out.db)){
+  if(fclose((FILE*)dbconf->dbc_out.dbP)){
     error(0,"Unable to close database:%s\n",strerror(errno));
     return RETFAIL;
   }
@@ -1117,7 +1117,7 @@ int db_close_file_ram(db_config* dbconf)
       return RETFAIL;
     }
   }else {
-    if(fclose(dbconf->dbc_out.db)){
+    if(fclose((FILE*)dbconf->dbc_out.dbP)){
       error(0,"Unable to close database:%s\n",strerror(errno));
       return RETFAIL;
     }

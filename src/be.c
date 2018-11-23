@@ -117,7 +117,7 @@ static char* get_first_value(char** in){
 
 #endif
 
-FILE* be_init(int inout,url_t* u,int iszipped)
+void* be_init(int inout,url_t* u,int iszipped)
 {
     FILE* fh=NULL;
     long a=0;
@@ -139,7 +139,7 @@ FILE* be_init(int inout,url_t* u,int iszipped)
             u->value = expand_tilde(u->value);
             error(200,_("Opening file \"%s\" for %s\n"),u->value,inout?"r":"w+");
 
-            return fh;
+            return (void*)fh;
         }
         case url_file :
         {
@@ -197,19 +197,19 @@ FILE* be_init(int inout,url_t* u,int iszipped)
             #ifdef WITH_ZLIB
             }
             #endif
-            return fh;
+            return (void*)fh;
         }
         case url_stdout :
         {
             #ifdef WITH_ZLIB
             if(iszipped)
             {
-                return gzdopen(fileno(stdout),"wb");
+                return (void*)gzdopen(fileno(stdout),"wb");
             }
             else
             {
             #endif
-                return stdout;
+                return (void*)stdout;
             #ifdef WITH_ZLIB
             }
             #endif
@@ -219,12 +219,12 @@ FILE* be_init(int inout,url_t* u,int iszipped)
             #ifdef WITH_ZLIB
             if(iszipped)
             {
-                return gzdopen(fileno(stdin),"r");
+                return (void*)gzdopen(fileno(stdin),"r");
             }
             else
             {
             #endif
-                return stdin;
+                return (void*)stdin;
             #ifdef WITH_ZLIB
             }
             #endif
@@ -234,12 +234,12 @@ FILE* be_init(int inout,url_t* u,int iszipped)
             #ifdef WITH_ZLIB
             if(iszipped)
             {
-                return gzdopen(fileno(stderr),"wb");
+                return (void*)gzdopen(fileno(stderr),"wb");
             }
             else
             {
             #endif
-                return stderr;
+                return (void*)stderr;
             #ifdef WITH_ZLIB
             }
             #endif
@@ -271,7 +271,7 @@ FILE* be_init(int inout,url_t* u,int iszipped)
             #ifdef WITH_ZLIB
             }
             #endif
-            return fh;
+            return (void*)fh;
         }
         #ifdef WITH_PSQL
         case url_sql :
@@ -284,7 +284,7 @@ FILE* be_init(int inout,url_t* u,int iszipped)
             if (ret==NULL)
             {
                 error(0,"Not enough memory for postgres sql connection\n");
-                return ret;
+                return (void*)ret;
             }
 
             tmp=strdup(u->value);
@@ -405,7 +405,7 @@ FILE* be_init(int inout,url_t* u,int iszipped)
                 }
             }
             free(tmp2);
-            return ret;
+            return (void*)ret;
         }
         #endif
         #ifdef WITH_CURL
@@ -418,7 +418,7 @@ FILE* be_init(int inout,url_t* u,int iszipped)
             {
                 return NULL;
             }
-            return url_fopen(u->value,inout?"r":"w+");
+            return (void*)url_fopen(u->value,inout?"r":"w+");
         }
         #endif /* WITH CURL */
         default:

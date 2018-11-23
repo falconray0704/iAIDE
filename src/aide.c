@@ -350,17 +350,17 @@ static void setdefaults_before_config()
   //conf->db_in_url=NULL;
   //conf->db_in=NULL;
   conf->dbc_in.db_url=NULL;
-  conf->dbc_in.db=NULL;
+  conf->dbc_in.dbP=NULL;
   conf->db_new_size=0;
   conf->db_new_order=NULL;
   //conf->db_new_url=NULL;
   //conf->db_new=NULL;
   conf->dbc_new.db_url=NULL;
-  conf->dbc_new.db=NULL;
+  conf->dbc_new.dbP=NULL;
   //conf->db_out_url=NULL;
   //conf->db_out=NULL;
   conf->dbc_out.db_url=NULL;
-  conf->dbc_out.db=NULL;
+  conf->dbc_out.dbP=NULL;
 
   conf->mdc_in=NULL;
   conf->mdc_out=NULL;

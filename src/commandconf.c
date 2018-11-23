@@ -252,7 +252,7 @@ int db_input_wrapper(char* buf, int max_size, int db)
     md=&(conf->dboldmd);
 #endif
     
-    db_filep=&(conf->dbc_in.db);
+    db_filep=(FILE**)&(conf->dbc_in.dbP);
 
 #ifdef WITH_ZLIB
     db_gzp=&(conf->db_gzin);
@@ -269,7 +269,7 @@ int db_input_wrapper(char* buf, int max_size, int db)
     md=&(conf->dbnewmd);
 #endif
     
-    db_filep=&(conf->dbc_new.db);
+    db_filep=(FILE**)&(conf->dbc_new.dbP);
     
 #ifdef WITH_ZLIB
     db_gzp=&(conf->db_gznew);

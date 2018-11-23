@@ -301,7 +301,9 @@ typedef struct db_line {
 
 typedef struct _DB_Container {
   url_t* db_url;
-  FILE* db;
+  void* dbP;
+  //FILE* db;
+  //unsigned char * dbRAM;
 } DB_Container;
 
 typedef struct db_config {
