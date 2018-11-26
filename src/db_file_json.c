@@ -31,7 +31,7 @@
 
 #include "types.h"
 #include "base64.h"
-#include "db_file_ram.h"
+#include "db_file_json.h"
 #include "gen_list.h"
 #include "conf_yacc.h"
 #include "util.h"
@@ -1127,3 +1127,97 @@ int db_close_file_ram(db_config* dbconf)
   return RETOK;
 }
 // vi: ts=8 sw=8
+//
+//
+// JSON DB
+
+JsonDB* dbJSON_New(int isDump2File, unsigned char *filePath)
+{
+    JsonDB * jDB = (JsonDB*)calloc(sizeof(JsonDB), 1);
+    jDB->isDump2File = isDump2File == 0 ? 0 : 1;
+
+    if(jDB->isDump2File)
+    {
+        strcpy(jDB->filePath, filePath);
+    }
+
+    jDB->db = cJSON_CreateObject();
+    if(jDB->db == NULL)
+    {
+        return NULL;
+    }
+
+    return jDB;
+}
+
+int dbJSON_writespec(JsonDB *jDB, db_config* conf)
+{
+    char * jDBStr = NULL;
+    int ret = 0;
+    int idx = 0;
+    cJSON * spec = cJSON_CreateObject();
+    cJSON * specItems = NULL;
+
+    if(cJSON_AddNumberToObject(spec, "itemsCount", conf->db_out_size) == NULL)
+    {
+        goto end;
+    }
+
+    specItems = cJSON_AddArrayToObject(spec, "items");
+    if(specItems == NULL)
+    {
+        goto end;
+    }
+
+    /*
+    fprintf(stdout, "\n+++ dbJSON_writespe() cout cnt:%d out items:", conf->db_out_size);
+    for (idx = 0; idx < conf->db_out_size; idx++)
+    {
+        fprintf(stdout," %d", conf->db_out_order[idx]);
+    }
+    fprintf(stdout,"\n");
+    */
+
+    for(idx = 0; idx < conf->db_out_size; idx++)
+    {
+        int fieldIdx = conf->db_out_order[idx];
+        cJSON *item = cJSON_CreateString(db_field_names[fieldIdx]);
+        if(item == NULL)
+        {
+            goto end;
+        }
+
+        cJSON_AddItemToArray(specItems, item);
+    }
+
+    cJSON_AddItemToObject(jDB->db, "spec", spec);
+
+    /*
+    jDBStr = cJSON_Print(jDB->db);
+    fprintf(stdout, "\n=== dbJSON_writespe() obj:\n%s\n\n", jDBStr);
+    free(jDBStr);
+    */
+
+
+    return 0;
+
+end:
+    cJSON_Delete(spec);
+    return -1;
+}
+
+int dbJSON_writeFileObject(JsonDB *jDB, db_line* line)
+{
+    return 0;
+}
+
+int dbJSON_close(JsonDB * jDB)
+{
+
+    cJSON_Delete(jDB->db);
+    return 0;
+}
+
+
+
+

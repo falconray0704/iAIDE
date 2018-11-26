@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <pcre.h>
+#include "cJSON.h"
 
 #define E2O(n) (1<<n)
 
@@ -158,6 +159,43 @@ typedef enum {
    db_xattrs, 			/* "xattrs",  */
    db_e2fsattrs,        /* "e2fsattrs"     */
    db_unknown } DB_FIELD; 	/* "unknown"  */
+
+static const char *db_field_names[] = {
+    "name",
+    "lname",
+    "perm",
+    "uid",
+    "gid",
+    "size",
+    "atime",
+    "ctime",
+    "mtime",
+    "inode",
+    "bcount",
+    "lcount",
+    "md5",
+    "sha1",
+    "rmd160",
+    "tiger",
+    "crc32",
+    "haval",
+    "gost",
+    "crc32b",
+    "attr",
+    "acl",
+    "bsize",
+    "rdev",
+    "dev",
+    "checkmask",
+    "allownewfile",
+    "allowrmfile",
+    "sha256",
+    "sha512",
+    "whirlpool",
+    "selinux",
+    "xattrs",
+    "e2fsattrs",
+    "unknown" };
 
 /* db_unknown must be last because it is used to determine size of
    DB_FILED */
@@ -306,20 +344,27 @@ typedef struct _DB_Container {
   //unsigned char * dbRAM;
 } DB_Container;
 
+typedef struct _JsonDB {
+    int isDump2File;
+    unsigned char filePath[1024];
+
+    cJSON * db;
+} JsonDB;
+
 typedef struct db_config {
 
   //url_t* db_in_url;
   //FILE* db_in;
   DB_Container dbc_in;
-  
+
   //url_t* db_new_url;
   //FILE* db_new;
   DB_Container dbc_new;
-  
+
   //url_t* db_out_url;
   //FILE* db_out;
   DB_Container dbc_out;
-  
+
   int config_check;
 
   struct md_container *mdc_in;
@@ -347,6 +392,7 @@ typedef struct db_config {
 
   int db_out_size;
   DB_FIELD* db_out_order;
+
   
   char* config_file;
   char* config_version;
@@ -375,6 +421,10 @@ typedef struct db_config {
 
   int verbose_level;
   int enable_RAM_DB;
+
+  int enable_JSON_DB;
+  JsonDB *jDB;
+
   int database_add_metadata;
   int report_detailed_init;
   int report_base16;

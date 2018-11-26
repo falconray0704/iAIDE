@@ -30,11 +30,12 @@ aide_SOURCES = src/aide.c include/aide.h \
 	include/compare_db.h src/compare_db.c \
 	include/conf_lex.h src/conf_lex.l  \
 	src/conf_yacc.h src/conf_yacc.y \
+	include/cJSON.h src/cJSON.c \
 	include/db.h src/db.c \
 	include/db_config.h \
 	include/db_disk.h src/db_disk.c \
 	include/db_file.h src/db_file.c \
-	include/db_file_ram.h src/db_file_ram.c \
+	include/db_file_json.h src/db_file_json.c \
 	src/db_lex.l \
 	include/db_list.h src/db_list.c \
 	include/db_sql.h src/db_sql.c \

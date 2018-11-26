@@ -134,8 +134,9 @@ am__aide_SOURCES_DIST = src/aide.c include/aide.h include/base64.h \
 	include/conf_lex.h src/conf_lex.l src/conf_yacc.h \
 	src/conf_yacc.y include/db.h src/db.c include/db_config.h \
 	include/db_disk.h src/db_disk.c include/db_file.h \
-	src/db_file.c include/db_file_ram.h src/db_file_ram.c \
+	src/db_file.c include/db_file_json.h src/db_file_json.c \
 	src/db_lex.l include/db_list.h src/db_list.c \
+	include/cJSON.h src/cJSON.c \
 	include/db_sql.h src/db_sql.c include/do_md.h src/do_md.c \
 	include/report.h src/error.c include/gen_list.h src/gen_list.c \
 	src/getopt1.c include/getopt.h src/getopt.c include/list.h \
@@ -148,8 +149,8 @@ am__dirstamp = $(am__leading_dot)dirstamp
 am_aide_OBJECTS = src/aide.$(OBJEXT) src/base64.$(OBJEXT) \
 	src/be.$(OBJEXT) src/commandconf.$(OBJEXT) \
 	src/compare_db.$(OBJEXT) src/conf_lex.$(OBJEXT) \
-	src/conf_yacc.$(OBJEXT) src/db.$(OBJEXT) src/db_disk.$(OBJEXT) \
-	src/db_file.$(OBJEXT) src/db_file_ram.$(OBJEXT) src/db_lex.$(OBJEXT) \
+	src/conf_yacc.$(OBJEXT) src/cJSON.$(OBJEXT) src/db.$(OBJEXT) src/db_disk.$(OBJEXT) \
+	src/db_file.$(OBJEXT) src/db_file_json.$(OBJEXT) src/db_lex.$(OBJEXT) \
 	src/db_list.$(OBJEXT) src/db_sql.$(OBJEXT) src/do_md.$(OBJEXT) \
 	src/error.$(OBJEXT) src/gen_list.$(OBJEXT) \
 	src/getopt1.$(OBJEXT) src/getopt.$(OBJEXT) src/list.$(OBJEXT) \
@@ -408,8 +409,8 @@ aide_SOURCES = src/aide.c include/aide.h include/base64.h src/base64.c \
 	include/be.h src/be.c include/commandconf.h src/commandconf.c \
 	include/compare_db.h src/compare_db.c include/conf_lex.h \
 	src/conf_lex.l src/conf_yacc.h src/conf_yacc.y include/db.h \
-	src/db.c include/db_config.h include/db_disk.h src/db_disk.c \
-	include/db_file.h src/db_file.c include/db_file_ram.h src/db_file_ram.c src/db_lex.l include/db_list.h \
+	src/db.c include/db_config.h include/cJSON.h src/cJSON.c include/db_disk.h src/db_disk.c \
+	include/db_file.h src/db_file.c include/db_file_json.h src/db_file_json.c src/db_lex.l include/db_list.h \
 	src/db_list.c include/db_sql.h src/db_sql.c include/do_md.h \
 	src/do_md.c include/report.h src/error.c include/gen_list.h \
 	src/gen_list.c src/getopt1.c include/getopt.h src/getopt.c \
@@ -555,12 +556,14 @@ src/conf_yacc.h: src/conf_yacc.c
 	@if test ! -f $@; then $(MAKE) $(AM_MAKEFLAGS) src/conf_yacc.c; else :; fi
 src/conf_yacc.$(OBJEXT): src/$(am__dirstamp) \
 	src/$(DEPDIR)/$(am__dirstamp)
+src/cJSON.$(OBJEXT): src/$(am__dirstamp) \
+	src/$(DEPDIR)/$(am__dirstamp)
 src/db.$(OBJEXT): src/$(am__dirstamp) src/$(DEPDIR)/$(am__dirstamp)
 src/db_disk.$(OBJEXT): src/$(am__dirstamp) \
 	src/$(DEPDIR)/$(am__dirstamp)
 src/db_file.$(OBJEXT): src/$(am__dirstamp) \
 	src/$(DEPDIR)/$(am__dirstamp)
-src/db_file_ram.$(OBJEXT): src/$(am__dirstamp) \
+src/db_file_json.$(OBJEXT): src/$(am__dirstamp) \
 	src/$(DEPDIR)/$(am__dirstamp)
 src/db_lex.$(OBJEXT): src/$(am__dirstamp) \
 	src/$(DEPDIR)/$(am__dirstamp)
@@ -603,10 +606,11 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/compare_db.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/conf_lex.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/conf_yacc.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/cJSON.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/db.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/db_disk.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/db_file.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/db_file_ram.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/db_file_json.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/db_lex.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/db_list.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@src/$(DEPDIR)/db_sql.Po@am__quote@
