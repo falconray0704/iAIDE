@@ -15,6 +15,7 @@ src/conf_yacc.c
 src/conf_yacc.h
 src/db_lex.c
 
+autom4te.cache
 
 tags
 .idea
