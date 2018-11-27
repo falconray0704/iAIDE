@@ -43,6 +43,7 @@
 #include "report.h"
 /*for locale support*/
 #include "locale-aide.h"
+#include "db_file_json.h"
 /*for locale support*/
 
 #define CLOCK_SKEW 5
@@ -1126,6 +1127,13 @@ static void write_tree(seltree* node) {
             free_db_line(node->new_data);
             free(node->new_data);
             node->new_data=NULL;
+        }
+
+        //fprintf(stdout,"+++ write tree +++\n");
+        if(conf->enable_JSON_DB)
+        {
+          dbJSON_writeFileObject(conf->jDB, node->new_data, conf);
+          //fprintf(stdout,"+++ write JSON tree +++\n");
         }
     }
     for (r=node->childs;r;r=r->next) {

@@ -753,6 +753,64 @@ int db_write_byte_base64(byte*data,size_t len,FILE* file,int i,
 
 }
 
+char* db_write_byte_base64_str(byte*data,size_t len,int i,
+                DB_ATTR_TYPE th, DB_ATTR_TYPE attr )
+{
+    char* tmpstr=NULL;
+    int retval=0;
+    char * retStr=NULL;
+    char * wPos = NULL;
+    size_t strLen = 0;
+
+    if (data && !len)
+        len = strlen((const char *)data);
+
+    if (data!=NULL&&th&attr)
+    {
+        tmpstr=encode_base64(data,len);
+            strLen = strlen(tmpstr);
+        //fprintf(stdout,"+++ strLen:%d +++\n", strLen);
+    }
+    else
+    {
+        tmpstr=NULL;
+        //fprintf(stdout,"+++ strLen:%d +++\n", strLen);
+    }
+
+        //return NULL;
+
+    retStr = (char *)calloc(strLen + 3, 1);
+    wPos = retStr;
+
+    if(i)
+    {
+        //dofprintf(" ");
+        //retStr[0] = " ";
+        //wPos = wPos + 1;
+    }
+
+    if(tmpstr)
+    {
+        //retval=dofprintf("%s", tmpstr);
+        strcpy(retStr, tmpstr);
+        //memcpy(retStr,tmpstr, strLen + 1);
+        //fprintf(stdout,"+++ strLen:%d +++\n", strLen);
+        //return NULL;
+
+        free(tmpstr);
+        //return retval;
+        //return retStr;
+    }
+    else
+    {
+        *wPos = '0';
+        //return dofprintf("0");
+    }
+    //return 0;
+    return retStr;
+}
+
+
 int db_write_time_base64(time_t i,FILE* file,int a)
 {
     static char* ptr=NULL;

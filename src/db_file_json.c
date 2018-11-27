@@ -55,12 +55,14 @@
 #ifdef WITH_ZLIB
 #define ZBUFSIZE 16384
 
+/*
 static int dofprintf_ram( const char* s,...)
 #ifdef __GNUC__
         __attribute__ ((format (printf, 1, 2)));
 #else
         ;
 #endif
+*/
 
 RamLine* NewRamLine()
 {
@@ -107,1028 +109,114 @@ int ramLineWrite(RamLine *out, unsigned char * buf, unsigned int len)
 
 #endif
 
-
-int dofflush_ram(void)
+int dofprintf_ram(char ** dst, const char* s,...)
 {
+    char buf[3];
+    int retval;
+    char* temp=NULL;
+    va_list ap;
 
-  int retval;
-#ifdef WITH_ZLIB
-  if(conf->gzip_dbout){
-    /* Should not flush using gzip, it degrades compression */
-    retval=Z_OK;
-  }else {
-#endif
-    //retval=fflush((FILE*)conf->dbc_out.dbP); 
-#ifdef WITH_ZLIB
-  }
-#endif
+    va_start(ap,s);
+    retval=vsnprintf(buf,3,s,ap);
+    va_end(ap);
 
-  return retval;
-}
-
-int dofprintf_ram( const char* s,...)
-{
-  char buf[3];
-  int retval;
-  char* temp=NULL;
-  va_list ap;
-  
-  va_start(ap,s);
-  retval=vsnprintf(buf,3,s,ap);
-  va_end(ap);
-  
-  temp=(char*)malloc(retval+2);
-  if(temp==NULL){
-    error(0,"Unable to alloc %i bytes\n",retval+2);
-    return -1;
-  }  
-  va_start(ap,s);
-  retval=vsnprintf(temp,retval+1,s,ap);
-  va_end(ap);
-  
-  if (conf->mdc_out) {
-      update_md(conf->mdc_out,temp ,retval);
-  }
-
-#ifdef WITH_MHASH
-  if(conf->do_dbnewmd)
-    mhash(conf->dbnewmd,(void*)temp,retval);
-#endif
-
-#ifdef WITH_ZLIB
-  if(conf->gzip_dbout){
-    retval=gzwrite(conf->db_gzout,temp,retval);
-  }else{
-#endif
-    /* writing is ok with fwrite with curl.. */
-    retval=fwrite(temp,1,retval,(FILE*)conf->dbc_out.dbP);
-#ifdef WITH_ZLIB
-  }
-#endif
-  free(temp);
-
-  return retval;
-}
-
-
-
-int db_file_read_spec_ram(int db)
-{
-  
-  int i=0;
-  int* db_osize=0;
-  DB_FIELD** db_order=NULL;
-
-  switch (db) {
-  case DB_OLD: {
-    db_osize=&(conf->db_in_size);
-    db_order=&(conf->db_in_order);
-    db_lineno=&db_in_lineno;
-    break;
-  }
-  case DB_NEW: {
-    db_osize=&(conf->db_new_size);
-    db_order=&(conf->db_new_order);
-    db_lineno=&db_new_lineno;
-    break;
-  }
-  }
-
-  *db_order=(DB_FIELD*) malloc(1*sizeof(DB_FIELD));
-  
-  while ((i=db_scan())!=TNEWLINE){
-    switch (i) {
-      
-    case TID : {
-      int l;
-      
-
-      /* Yes... we do not check if realloc returns nonnull */
-
-      *db_order=(DB_FIELD*)
-	realloc((void*)*db_order,
-		((*db_osize)+1)*sizeof(DB_FIELD));
-      
-      if(*db_order==NULL){
-	return RETFAIL;
-      }
-      
-      (*db_order)[*db_osize]=db_unknown;
-      
-      for (l=0;l<db_unknown;l++){
-	
-	if (strcmp(db_names[l],dbtext)==0) {
-	  
-	  if (check_db_order(*db_order, *db_osize,
-			     db_value[l])==RETFAIL) {
-	    error(0,"Field %s redefined in @@dbspec\n",dbtext);
-	    (*db_order)[*db_osize]=db_unknown;
-	  } else {
-	    (*db_order)[*db_osize]=db_value[l];
-	  }
-	  (*db_osize)++;
-	  break;
-	}
-      }
-      for (l=0;l<db_alias_size;l++){
-	
-	if (strcmp(db_namealias[l],dbtext)==0) {
-	  
-	  if (check_db_order(*db_order, *db_osize,
-			     db_aliasvalue[l])==RETFAIL) {
-	    error(0,"Field %s redefined in @@dbspec\n",dbtext);
-	    (*db_order)[*db_osize]=db_unknown;
-	  } else {
-	    (*db_order)[*db_osize]=db_aliasvalue[l];
-	  }
-	  (*db_osize)++;
-	  break;
-	}
-      }
-      if(l==db_unknown){
-	error(0,"Unknown field %s in database\n",dbtext);
-	(*db_osize)++;
-      }
-      break;
-    }
-    
-    case TDBSPEC : {
-      error(0,"Only one @@dbspec in input database.\n");
-      return RETFAIL;
-      break;
-    }
-    
-    default : {
-      error(0,"Aide internal error while reading input database.\n");
-      return RETFAIL;
-    }
-    }
-  }
-
-  /* Lets generate attr from db_order if database does not have attr */
-  conf->attr=-1;
-
-  for (i=0;i<*db_osize;i++) {
-    if ((*db_order)[i]==db_attr) {
-      conf->attr=1;
-    }
-  }
-  if (conf->attr==DB_ATTR_UNDEF) {
-    conf->attr=0;
-    error(0,"Database does not have attr field.\nComparation may be incorrect\nGenerating attr-field from dbspec\nIt might be a good Idea to regenerate databases. Sorry.\n");
-    for(i=0;i<conf->db_in_size;i++) {
-      conf->attr|=1<<(*db_order)[i];
-    }
-  }
-  return RETOK;
-}
-
-char** db_readline_file_ram(int db)
-{
-  
-  char** s=NULL;
-  
-  int i=0;
-  int r;
-  int a=0;
-  int token=0;
-  int gotbegin_db=0;
-  int gotend_db=0;
-  int* domd=NULL;
-#ifdef WITH_MHASH
-  MHASH* md=NULL;
-#endif
-  char** oldmdstr=NULL;
-  int* db_osize=0;
-  DB_FIELD** db_order=NULL;
-  FILE** db_filep=NULL;
-  url_t* db_url=NULL;
-
-  switch (db) {
-  case DB_OLD: {
-#ifdef WITH_MHASH
-    md=&(conf->dboldmd);
-#endif
-    domd=&(conf->do_dboldmd);
-    oldmdstr=&(conf->old_dboldmdstr);
-    
-    db_osize=&(conf->db_in_size);
-    db_order=&(conf->db_in_order);
-    db_filep=(FILE**)&(conf->dbc_in.dbP);
-    db_url=conf->dbc_in.db_url;
-    db_lineno=&db_in_lineno;
-    break;
-  }
-  case DB_NEW: {
-#ifdef WITH_MHASH
-    md=&(conf->dbnewmd);
-#endif
-    domd=&(conf->do_dbnewmd);
-    oldmdstr=&(conf->old_dbnewmdstr);
-    
-    db_osize=&(conf->db_new_size);
-    db_order=&(conf->db_new_order);
-    db_filep=(FILE*)&(conf->dbc_new.dbP);
-    db_url=conf->dbc_new.db_url;
-    db_lineno=&db_new_lineno;
-    break;
-  }
-  }
-  
-  if (*db_osize==0) {
-    db_buff(db,*db_filep);
-    
-    token=db_scan();
-    while((token!=TDBSPEC && token!=TEOF)){
-
-      switch(token){
-      case TUNKNOWN: {
-	continue;
-      }
-      case TBEGIN_DB: {
-	token=db_scan();
-	gotbegin_db=1;
-	continue;
-      }
-      case TNEWLINE: {
-	if(gotbegin_db){
-	  *domd=1;
-	  token=db_scan();
-	  continue;
-	}else {
-	  token=TEOF;
-	  break;
-	}
-      }
-      case TGZIPHEADER: {
-	error(0,"Gzipheader found inside uncompressed db!\n");
-	return NULL;
-      }
-      default: {
-	/* If it is anything else we quit */
-	/* Missing dbspec */
-	token=TEOF;
-	break;
-      }
-      }
+    temp=(char*)calloc(retval+2, 1);
+    if(temp==NULL)
+    {
+        error(0,"Unable to alloc %i bytes\n",retval+2);
+        return -1;
     }
 
-    if(FORCEDBMD&&!gotbegin_db){
-      error(0,"Database %i does not have checksum!\n",db);
-      return NULL;
-    }
+    va_start(ap,s);
+    retval=vsnprintf(temp,retval+1,s,ap);
+    va_end(ap);
 
-    if (token!=TDBSPEC) {
-      /*
-       * error.. must be a @@dbspec line
-       */
-      
-      switch (db_url->type) {
-      case url_file : {
-	error(0,"File database must have one db_spec specification\n");
-	break;
-      }
 
-      case url_stdin : {
-	error(0,"Pipe database must have one db_spec specification\n");
-	break;
-      }
-
-      case url_fd: {
-	error(0,"FD database must have one db_spec specification\n");
-	break;
-      }
-#ifdef WITH_CURL
-      case url_http:
-      case url_https:
-      case url_ftp: {
-	error(0,"CURL database must have one db_spec specification %i\n",token);
-	break;
-      }
-#endif
-	
-      default : {
-	error(0,"db_readline_file_ram():Unknown or unsupported db in type.\n");
-	
-	break;
-      }
-      
-      }
-      return s;
-    }
-    
-    /*
-     * Here we read da spec
-     */
-    
-    if (db_file_read_spec_ram(db)!=0) {
-      /* somethin went wrong */
-      return s;
-    }
-    
-  }else {
-    /* We need to switch the buffer cleanly*/
-    db_buff(db,NULL);
-  }
-
-  s=(char**)malloc(sizeof(char*)*db_unknown);
-
-  /* We NEED this to avoid Bus errors on Suns */
-  for(i=0;i<db_unknown;i++){
-    s[i]=NULL;
-  }
-  
-  for(i=0;i<*db_osize;i++){
-    switch (r=db_scan()) {
-      
-    case TDBSPEC : {
-      
-      error(0,"Database file can have only one db_spec.\nTrying to continue on line %li\n",*db_lineno);      
-      break;
-    }
-    case TNAME : {
-      if ((*db_order)[i]!=db_unknown) {
-	s[*db_order[i]]=(char*)strdup(dbtext);
-      }
-      break;
-    }
-    
-    case TID : {
-      if ((*db_order)[i]!=db_unknown) {
-	s[(*db_order)[i]]=(char*)strdup(dbtext);
-      }
-      break;
-    }
-    
-    case TNEWLINE : {
-      
-      if (i==0) {
-	i--;
-	break;
-      }
-      if(gotend_db){
-	return NULL;
-      }
-      /*  */
-
-      error(0,"Not enough parameters in db:%li. Trying to continue.\n",
-	    *db_lineno);
-      for(a=0;a<i;a++){
-	free(s[(*db_order)[a]]);
-	s[(*db_order)[a]]=NULL;
-      }
-      i=0;
-      break;
-
-    }
-
-    case TBEGIN_DB : {
-      error(0,_("Corrupt db. Found @@begin_db inside db. Please check\n"));
-      return NULL;
-      break;
-    }
-
-    case TEND_DB : {
-      gotend_db=1;
-      token=db_scan();
-      if(token!=TSTRING){
-	error(0,_("Corrupt db. Checksum garbled\n"));
-	abort();
-      } else { /* FIXME: this probably isn't right */
-#ifdef WITH_MHASH
-	if(*md){
-	  byte* dig=NULL;
-	  char* digstr=NULL;
-	  
-	  *oldmdstr=strdup(dbtext);
-	  
-	  mhash(*md,NULL,0);
-	  dig=(byte*)
-	    malloc(sizeof(byte)*mhash_get_block_size(conf->dbhmactype));
-	  mhash_deinit(*md,(void*)dig);
-	  digstr=encode_base64(dig,mhash_get_block_size(conf->dbhmactype));
-	  if(strncmp(digstr,*oldmdstr,strlen(digstr))!=0){
-	    error(0,_("Db checksum mismatch for db:%i\n"),db);
-	    abort();
-	  }
-	}
-        else
-        {
-	  error(0,"@@end_db found without @@begin_db in db:%i\n",db);
-	  abort();
-	}
-#endif
-      }
-      token=db_scan();
-      if(token!=TNEWLINE){
-	error(0,_("Corrupt db. Checksum garbled\n"));
-	abort();
-      }	
-      break;
-    }
-
-    case TEND_DBNOMD : {
-      gotend_db=1;
-      if(FORCEDBMD){
-        error(0,"Database %i does not have checksum!\n",db);
-	abort();
-      }
-      break;
-    }
-
-    case TEOF : {
-      if(gotend_db){
-	return NULL;
-      }	
-      /* This can be the first token on a line */
-      if(i>0){
-	error(0,"Not enough parameters in db:%li\n",*db_lineno);
-      };
-      for(a=0;a<i;a++){
-	free(s[(*db_order)[a]]);
-      }
-      free(s);
-      return NULL;
-      break;
-    }
-    case TERROR : {
-      error(0,"There was an error in the database file on line:%li.\n",*db_lineno);
-      break;
-    }
-    
-    default : {
-      
-      error(0,"Not implemented in db_readline_file_ram %i\n\"%s\"",r,dbtext);
-      
-      free(s);
-      s=NULL;
-      i=*db_osize;
-      break;
-    }
-    }
-    
-  }
-  
-
-  /*
-   * If we don't get newline after reading all cells we print an error
-   */
-  a=db_scan();
-
-  if (a!=TNEWLINE&&a!=TEOF) {
-    error(0,"Newline expected in database. Reading until end of line\n");
-    do {
-      
-      error(0,"Skipped value %s\n",dbtext);
-      
-      /*
-       * Null statement
-       */ 
-      a=db_scan();
-    }while(a!=TNEWLINE&&a!=TEOF);
-    
-  }
-  
-  return s;
-  
-}
-
-int db_writechar_ram(char* s,FILE* file,int i)
-{
-  char* r=NULL;
-  int retval=0;
-
-  (void)file;
-  
-  if(i) {
-    dofprintf_ram(" ");
-  }
-
-  if(s==NULL){
-    retval=dofprintf_ram("0");
+    *dst = temp;
     return retval;
-  }
-  if(s[0]=='\0'){
-    retval=dofprintf_ram("0-");
-    return retval;
-  }
-  if(s[0]=='0'){
-    retval=dofprintf_ram("00");
-    if(retval<0){
-      return retval;
-    }
-    s++;
-  }
-  
-  if (!i && s[0]=='#') {
-    dofprintf_ram("# ");
-    r=CLEANDUP(s+1);
-  } else {
-    r=CLEANDUP(s);
-  }
-  
-  retval=dofprintf_ram("%s",r);
-  free(r);
-  return retval;
 }
 
-int db_writeint_ram(long i,FILE* file,int a)
+int db_writeint_ram(char ** dst, long i)
 {
-  (void)file;
-  
-  if(a) {
-    dofprintf_ram(" ");
-  }
-  
-  return dofprintf_ram("%li",i);
-  
+    return dofprintf_ram(dst, "%li",i);
 }
-int db_writelong_ram(AIDE_OFF_TYPE i,FILE* file,int a)
+
+int db_writelong_ram(char ** dst, AIDE_OFF_TYPE i)
 {
-  (void)file;
-  
-  if(a) {
-    dofprintf_ram(" ");
-  }
-  
 #if defined HAVE_OFF64_TYPE && SIZEOF_OFF64_T == SIZEOF_LONG_LONG || !defined HAVE_OFF64_TYPE && SIZEOF_OFF_T == SIZEOF_LONG_LONG
-  return dofprintf_ram("%lli",(long long)i);
+    return dofprintf_ram(dst, "%lli",(long long)i);
 #else
-  return dofprintf_ram("%li",i);
+    return dofprintf_ram(dst, "%li",i);
 #endif
-  
 }
 
-int db_write_byte_base64_ram(byte*data,size_t len,FILE* file,int i,
-                         DB_ATTR_TYPE th, DB_ATTR_TYPE attr )
+int db_write_byte_base64_ram(char **dst, byte*data,size_t len, DB_ATTR_TYPE th, DB_ATTR_TYPE attr )
 {
-  char* tmpstr=NULL;
-  int retval=0;
-  
-  (void)file;  
-  if (data && !len)
-    len = strlen((const char *)data);
-  
-  if (data!=NULL&&th&attr) {
-    tmpstr=encode_base64(data,len);
-  } else {
-    tmpstr=NULL;
-  }
-  if(i){
-    dofprintf_ram(" ");
-  }
+    char* tmpstr=NULL;
+    int retval=0;
 
-  if(tmpstr){
-    retval=dofprintf_ram("%s", tmpstr);
+    if (data && !len)
+        len = strlen((const char *)data);
+
+    if (data!=NULL&&th&attr)
+    {
+        tmpstr=encode_base64(data,len);
+    }
+    else
+    {
+        tmpstr=NULL;
+    }
+
+    if(tmpstr)
+    {
+        retval=dofprintf_ram(dst, "%s", tmpstr);
+        free(tmpstr);
+        return retval;
+    }
+    else
+    {
+        return dofprintf_ram(dst, "0");
+    }
+    return 0;
+}
+
+int db_write_time_base64_ram(char **dst, time_t i)
+{
+    static char* ptr=NULL;
+    char* tmpstr=NULL;
+    int retval=0;
+
+    if(i==0)
+    {
+        retval=dofprintf_ram(dst, "0");
+        return retval;
+    }
+
+
+    ptr=(char*)malloc(sizeof(char)*TIMEBUFSIZE);
+    if (ptr==NULL)
+    {
+        error(0,"\nCannot allocate memory.\n");
+        abort();
+    }
+    memset((void*)ptr,0,sizeof(char)*TIMEBUFSIZE);
+
+    sprintf(ptr,"%li",i);
+
+
+    tmpstr=encode_base64((byte *)ptr,strlen(ptr));
+    retval=dofprintf_ram(dst, "%s", tmpstr);
     free(tmpstr);
+    free(ptr);
+
     return retval;
-  }else {
-    return dofprintf_ram("0");
-  }
-  return 0;
-
 }
 
-int db_write_time_base64_ram(time_t i,FILE* file,int a)
+int db_writeoct_ram(char **dst, long i)
 {
-  static char* ptr=NULL;
-  char* tmpstr=NULL;
-  int retval=0;
-
-  (void)file;
-  
-  if(a){
-    dofprintf_ram(" ");
-  }
-
-  if(i==0){
-    retval=dofprintf_ram("0");
-    return retval;
-  }
-
-
-  ptr=(char*)malloc(sizeof(char)*TIMEBUFSIZE);
-  if (ptr==NULL) {
-    error(0,"\nCannot allocate memory.\n");
-    abort();
-  }
-  memset((void*)ptr,0,sizeof(char)*TIMEBUFSIZE);
-
-  sprintf(ptr,"%li",i);
-
-
-  tmpstr=encode_base64((byte *)ptr,strlen(ptr));
-  retval=dofprintf_ram("%s", tmpstr);
-  free(tmpstr);
-  free(ptr);
-
-  return retval;
-
+    return dofprintf_ram(dst, "%lo",i);
 }
 
-int db_writeoct_ram(long i, FILE* file,int a)
-{
-  (void)file;
-  
-  if(a) {
-    dofprintf_ram(" ");
-  }
-  
-  return dofprintf_ram("%lo",i);
-  
-}
-
-int db_writespec_file_ram(db_config* dbconf)
-{
-  int i=0;
-  int j=0;
-  int retval=1;
-  void*key=NULL;
-  int keylen=0;
-  struct tm* st;
-  time_t tim=time(&tim);
-  st=localtime(&tim);
-
-  retval=dofprintf_ram("@@begin_db\n");
-  if(retval==0){
-    return RETFAIL;
-  }
-
-#ifdef WITH_MHASH
-  /* From hereon everything must MD'd before write to db */
-  if((key=get_db_key())!=NULL){
-    keylen=get_db_key_len();
-    dbconf->do_dbnewmd=1;
-    if( (dbconf->dbnewmd=
-	 mhash_hmac_init(dbconf->dbhmactype,
-			 key,
-			 keylen,
-			 mhash_get_hash_pblock(dbconf->dbhmactype)))==
-	MHASH_FAILED){
-      error(0, "mhash_hmac_init() failed for db write. Aborting\n");
-      abort();
-    }
-  }
-  
-  
-#endif
-
-  if(dbconf->database_add_metadata) {
-      retval=dofprintf_ram(
-             "# This file was generated by Aide, version %s\n"
-             "# Time of generation was %.4u-%.2u-%.2u %.2u:%.2u:%.2u\n",
-             AIDEVERSION,
-             st->tm_year+1900, st->tm_mon+1, st->tm_mday,
-             st->tm_hour, st->tm_min, st->tm_sec
-             );
-      if(retval==0){
-        return RETFAIL;
-      }
-  }
-  if(dbconf->config_version){
-    retval=dofprintf_ram(
-		     "# The config version used to generate this file was:\n"
-		     "# %s\n", dbconf->config_version);
-    if(retval==0){
-      return RETFAIL;
-    }
-  }
-  retval=dofprintf_ram("@@db_spec ");
-  if(retval==0){
-    return RETFAIL;
-  }
-  for(i=0;i<dbconf->db_out_size;i++){
-    for(j=0;j<db_unknown;j++){
-      if((int)db_value[j]==(int)dbconf->db_out_order[i]){
-	retval=dofprintf_ram("%s ",db_names[j]);
-	if(retval==0){
-	  return RETFAIL;
-	}
-	break;
-      }
-    }
-  }
-  retval=dofprintf_ram("\n");
-  if(retval==0){
-    return RETFAIL;
-  }
-  return RETOK;
-}
-
-#ifdef WITH_ACL
-int db_writeacl_ram(acl_type* acl,FILE* file,int a)
-{
-#ifdef WITH_SUN_ACL
-  int i;
-
-  if(a) {
-    dofprintf_ram(" ");
-  }
-  
-  if (acl==NULL) {
-    dofprintf_ram("0");
-  } else {
-    
-    dofprintf_ram("%i",acl->entries);
-    
-    for (i=0;i<acl->entries;i++) {
-      dofprintf_ram(",%i,%i,%i", acl->acl[i].a_type, acl->acl[i].a_id,
-	      acl->acl[i].a_perm);
-    }
-  }
-#endif
-#ifdef WITH_POSIX_ACL
-  if(a) {
-    dofprintf_ram(" ");
-  }
-  
-  if (acl==NULL) {
-    dofprintf_ram("0");
-  } else {    
-    dofprintf_ram("POSIX"); /* This is _very_ incompatible */
-
-    dofprintf_ram(",");
-    if (acl->acl_a)
-      db_write_byte_base64_ram((byte*)acl->acl_a, 0, file,0,1,1);
-    else
-      dofprintf_ram("0");
-    dofprintf_ram(",");
-    if (acl->acl_d)
-      db_write_byte_base64_ram((byte*)acl->acl_d, 0, file,0,1,1);
-    else
-      dofprintf_ram("0");
-  }
-#endif
-#ifndef WITH_ACL
-  if(a) { /* compat. */
-    dofprintf_ram(" ");
-  }
-  
-  dofprintf_ram("0");
-#endif
-  
-  return RETOK;
-}
-#endif
-
-int db_writeline_file_ram(db_line* line,db_config* dbconf, url_t* url)
-{
-  int i;
-
-  (void)url;
-  
-  for(i=0;i<dbconf->db_out_size;i++){
-    switch (dbconf->db_out_order[i]) {
-    case db_filename : {
-      db_writechar_ram(line->filename,(FILE*)dbconf->dbc_out.dbP,i);
-      break;
-    }
-    case db_linkname : {
-      db_writechar_ram(line->linkname,(FILE*)dbconf->dbc_out.dbP,i);
-      break;
-    }
-    case db_bcount : {
-      db_writeint_ram(line->bcount,(FILE*)dbconf->dbc_out.dbP,i);
-      break;
-    }
-
-    case db_mtime : {
-      db_write_time_base64_ram(line->mtime,(FILE*)dbconf->dbc_out.dbP,i);
-      break;
-    }
-    case db_atime : {
-      db_write_time_base64_ram(line->atime,(FILE*)dbconf->dbc_out.dbP,i);
-      break;
-    }
-    case db_ctime : {
-      db_write_time_base64_ram(line->ctime,(FILE*)dbconf->dbc_out.dbP,i);
-      break;
-    }
-    case db_inode : {
-      db_writeint_ram(line->inode,(FILE*)dbconf->dbc_out.dbP,i);
-      break;
-    }
-    case db_lnkcount : {
-      db_writeint_ram(line->nlink,(FILE*)dbconf->dbc_out.dbP,i);
-      break;
-    }
-    case db_uid : {
-      db_writeint_ram(line->uid,(FILE*)dbconf->dbc_out.dbP,i);
-      break;
-    }
-    case db_gid : {
-      db_writeint_ram(line->gid,(FILE*)dbconf->dbc_out.dbP,i);
-      break;
-    }
-    case db_size : {
-      db_writelong_ram(line->size,(FILE*)dbconf->dbc_out.dbP,i);
-      break;
-    }
-    case db_md5 : {
-      db_write_byte_base64_ram(line->md5,
-			   HASH_MD5_LEN,
-			   (FILE*)dbconf->dbc_out.dbP,i,
-			   DB_MD5,line->attr);
-	
-      break;
-    }
-    case db_sha1 : {
-      db_write_byte_base64_ram(line->sha1,
-			   HASH_SHA1_LEN,
-			   (FILE*)dbconf->dbc_out.dbP,i,
-			   DB_SHA1,line->attr);
-
-      break;
-    }
-    case db_rmd160 : {
-      db_write_byte_base64_ram(line->rmd160,
-			   HASH_RMD160_LEN,
-			   (FILE*)dbconf->dbc_out.dbP,i,
-			   DB_RMD160,line->attr);
-      break;
-    }
-    case db_tiger : {
-      db_write_byte_base64_ram(line->tiger,
-			   HASH_TIGER_LEN,
-			   (FILE*)dbconf->dbc_out.dbP,i,
-			   DB_TIGER,line->attr);
-      break;
-    }
-    case db_perm : {
-      db_writeoct_ram(line->perm,(FILE*)dbconf->dbc_out.dbP,i);
-      break;
-    }
-    case db_crc32 : {
-      db_write_byte_base64_ram(line->crc32,
-			   HASH_CRC32_LEN,
-			   (FILE*)dbconf->dbc_out.dbP,i,
-			   DB_CRC32,line->attr);
-      break;
-    }
-    case db_crc32b : {
-      db_write_byte_base64_ram(line->crc32b,
-			   HASH_CRC32B_LEN,
-			   (FILE*)dbconf->dbc_out.dbP,i,
-			   DB_CRC32B,line->attr);
-      break;
-    }
-    case db_haval : {
-      db_write_byte_base64_ram(line->haval,
-			   HASH_HAVAL256_LEN,
-			   (FILE*)dbconf->dbc_out.dbP,i,
-			   DB_HAVAL,line->attr);
-      break;
-    }
-    case db_gost : {
-      db_write_byte_base64_ram(line->gost ,
-			   HASH_GOST_LEN,
-			   (FILE*)dbconf->dbc_out.dbP,i,
-			   DB_GOST,line->attr);
-      break;
-    }
-    case db_sha256 : {
-      db_write_byte_base64_ram(line->sha256,
-			   HASH_SHA256_LEN,
-			   (FILE*)dbconf->dbc_out.dbP,i,
-			   DB_SHA256,line->attr);
-
-      break;
-    }
-    case db_sha512 : {
-      db_write_byte_base64_ram(line->sha512,
-			   HASH_SHA512_LEN,
-			   (FILE*)dbconf->dbc_out.dbP,i,
-			   DB_SHA512,line->attr);
-
-      break;
-    }
-    case db_whirlpool : {
-      db_write_byte_base64_ram(line->whirlpool,
-			   HASH_WHIRLPOOL_LEN,
-			   (FILE*)dbconf->dbc_out.dbP,i,
-			   DB_WHIRLPOOL,line->attr);
-
-      break;
-    }
-    case db_attr : {
-      db_writelong_ram(line->attr, (FILE*)dbconf->dbc_out.dbP,i);
-      break;
-    }
-#ifdef WITH_ACL
-    case db_acl : {
-      db_writeacl_ram(line->acl,(FILE*)dbconf->dbc_out.dbP,i);
-      break;
-    }
-#endif
-    case db_xattrs : {
-        xattr_node *xattr = NULL;
-        size_t num = 0;
-        
-        if (!line->xattrs)
-        {
-          db_writelong_ram(0, (FILE*)dbconf->dbc_out.dbP, i);
-          break;
-        }
-        
-        db_writelong_ram(line->xattrs->num, (FILE*)dbconf->dbc_out.dbP, i);
-        
-        xattr = line->xattrs->ents;
-        while (num < line->xattrs->num)
-        {
-          dofprintf_ram(",");
-          db_writechar_ram(xattr->key, (FILE*)dbconf->dbc_out.dbP, 0);
-          dofprintf_ram(",");
-          db_write_byte_base64_ram(xattr->val, xattr->vsz, (FILE*)dbconf->dbc_out.dbP, 0, 1, 1);
-          
-          ++xattr;
-          ++num;
-        }
-      break;
-    }
-    case db_selinux : {
-	db_write_byte_base64_ram((byte*)line->cntx, 0, (FILE*)dbconf->dbc_out.dbP, i, 1, 1);
-      break;
-    }
-#ifdef WITH_E2FSATTRS
-    case db_e2fsattrs : {
-      db_writelong_ram(line->e2fsattrs,(FILE*)dbconf->dbc_out.dbP,i);
-      break;
-    }
-#endif
-    case db_checkmask : {
-      db_writeoct_ram(line->attr,(FILE*)dbconf->dbc_out.dbP,i);
-      break;
-    }
-    default : {
-      error(0,"Not implemented in db_writeline_file_ram %i\n",
-	    dbconf->db_out_order[i]);
-      return RETFAIL;
-    }
-    
-    }
-    
-  }
-
-  dofprintf_ram("\n");
-  /* Can't use fflush because of zlib.*/
-  dofflush_ram();
-
-  return RETOK;
-}
-
-int db_close_file_ram(db_config* dbconf)
-{
-  
-#ifdef WITH_MHASH
-  byte* dig=NULL;
-  char* digstr=NULL;
-
-  if((FILE*)dbconf->dbc_out.dbP
-#ifdef WITH_ZLIB
-     || dbconf->db_gzout
-#endif
-     ){
-
-    /* Let's write @@end_db <checksum> */
-    if (dbconf->dbnewmd!=NULL) {
-      mhash(dbconf->dbnewmd, NULL ,0);
-      dig=(byte*)malloc(sizeof(byte)*mhash_get_block_size(dbconf->dbhmactype));
-      mhash_deinit(dbconf->dbnewmd,(void*)dig);
-      digstr=encode_base64(dig,mhash_get_block_size(dbconf->dbhmactype));
-      dbconf->do_dbnewmd=0;
-      dofprintf_ram("@@end_db %s\n",digstr);
-      free(dig);
-      free(digstr);
-    } else {
-      dofprintf_ram("@@end_db\n");
-    }
-  }
-#endif
-
-#ifndef WITH_ZLIB
-  if(fclose((FILE*)dbconf->dbc_out.dbP)){
-    error(0,"Unable to close database:%s\n",strerror(errno));
-    return RETFAIL;
-  }
-#else
-  if(dbconf->gzip_dbout){
-    if(gzclose(dbconf->db_gzout)){
-      error(0,"Unable to close gzdatabase:%s\n",strerror(errno));
-      return RETFAIL;
-    }
-  }else {
-    if(fclose((FILE*)dbconf->dbc_out.dbP)){
-      error(0,"Unable to close database:%s\n",strerror(errno));
-      return RETFAIL;
-    }
-  }
-#endif
-
-  return RETOK;
-}
-// vi: ts=8 sw=8
-//
-//
 // JSON DB
 
 JsonDB* dbJSON_New(int isDump2File, unsigned char *filePath)
@@ -1146,6 +234,8 @@ JsonDB* dbJSON_New(int isDump2File, unsigned char *filePath)
     {
         return NULL;
     }
+
+    jDB->fileList = cJSON_AddArrayToObject(jDB->db, "filsDB");
 
     return jDB;
 }
@@ -1206,8 +296,411 @@ end:
     return -1;
 }
 
-int dbJSON_writeFileObject(JsonDB *jDB, db_line* line)
+cJSON * dbJSON_line2FileObject(db_line* line, db_config* dbconf)
 {
+    int i;
+    cJSON * item = NULL;
+    cJSON * fileObj = cJSON_CreateObject();
+
+    for(i=0;i<dbconf->db_out_size;i++)
+    //for(i=0;i<6;i++)
+    {
+        switch (dbconf->db_out_order[i])
+        {
+            case db_filename :
+            {
+                //db_writechar(line->filename,(FILE*)dbconf->dbc_out.dbP,i);
+                if(cJSON_AddStringToObject(fileObj, db_field_names[db_filename], line->filename) == NULL)
+                    goto  end;
+                break;
+            }
+            case db_linkname :
+            {
+                //db_writechar(line->linkname,(FILE*)dbconf->dbc_out.dbP,i);
+                char * lname = line->linkname == NULL ? "0" : line->linkname;
+                if(cJSON_AddStringToObject(fileObj, db_field_names[db_linkname], lname) == NULL)
+                    goto  end;
+                break;
+            }
+            case db_bcount :
+            {
+                //db_writeint(line->bcount,(FILE*)dbconf->dbc_out.dbP,i);
+                if(cJSON_AddNumberToObject(fileObj, db_field_names[db_bcount], line->bcount) == NULL)
+                    goto  end;
+                break;
+            }
+            case db_mtime :
+            {
+                //db_write_time_base64(line->mtime,(FILE*)dbconf->dbc_out.dbP,i);
+                char * dst = NULL;
+                int ret = db_write_time_base64_ram(&dst, line->mtime);
+                if(ret <= 0 || cJSON_AddStringToObject(fileObj, db_field_names[db_mtime ], dst) == NULL)
+                {
+                    if(dst != NULL)
+                        free(dst);
+                    goto  end;
+                }
+                if(dst != NULL)
+                    free(dst);
+                break;
+            }
+            case db_atime :
+            {
+                //db_write_time_base64(line->atime,(FILE*)dbconf->dbc_out.dbP,i);
+                char * dst = NULL;
+                int ret = db_write_time_base64_ram(&dst, line->atime);
+                if(ret <= 0 || cJSON_AddStringToObject(fileObj, db_field_names[db_atime ], dst) == NULL)
+                {
+                    if(dst != NULL)
+                        free(dst);
+                    goto  end;
+                }
+                if(dst != NULL)
+                    free(dst);
+                break;
+            }
+            case db_ctime :
+            {
+                //db_write_time_base64(line->ctime,(FILE*)dbconf->dbc_out.dbP,i);
+                char * dst = NULL;
+                int ret = db_write_time_base64_ram(&dst, line->ctime);
+                if(ret <= 0 || cJSON_AddStringToObject(fileObj, db_field_names[db_ctime ], dst) == NULL)
+                {
+                    if(dst != NULL)
+                        free(dst);
+                    goto  end;
+                }
+                if(dst != NULL)
+                    free(dst);
+                break;
+            }
+            case db_inode :
+            {
+                //db_writeint(line->inode,(FILE*)dbconf->dbc_out.dbP,i);
+                if(cJSON_AddNumberToObject(fileObj, db_field_names[db_inode], line->inode) == NULL)
+                    goto  end;
+                break;
+            }
+            case db_lnkcount :
+            {
+                //db_writeint(line->nlink,(FILE*)dbconf->dbc_out.dbP,i);
+                if(cJSON_AddNumberToObject(fileObj, db_field_names[db_lnkcount], line->nlink) == NULL)
+                    goto  end;
+                break;
+            }
+            case db_uid :
+            {
+                //db_writeint(line->uid,(FILE*)dbconf->dbc_out.dbP,i);
+                if(cJSON_AddNumberToObject(fileObj, db_field_names[db_uid], line->uid) == NULL)
+                    goto  end;
+                break;
+            }
+            case db_gid :
+            {
+                //db_writeint(line->gid,(FILE*)dbconf->dbc_out.dbP,i);
+                if(cJSON_AddNumberToObject(fileObj, db_field_names[db_gid], line->gid) == NULL)
+                    goto  end;
+                break;
+            }
+            case db_size :
+            {
+                //db_writelong(line->size,(FILE*)dbconf->dbc_out.dbP,i);
+                if(cJSON_AddNumberToObject(fileObj, db_field_names[db_size], line->size) == NULL)
+                    goto  end;
+                break;
+            }
+            case db_md5 :
+            {
+                //db_write_byte_base64(line->md5, HASH_MD5_LEN, (FILE*)dbconf->dbc_out.dbP,i, DB_MD5,line->attr);
+                char * str = db_write_byte_base64_str(line->md5, HASH_MD5_LEN, i, DB_MD5,line->attr);
+                if(str == NULL)
+                    goto end;
+
+                if(cJSON_AddStringToObject(fileObj, db_field_names[db_md5], str) == NULL)
+                {
+                    free(str);
+                    goto end;
+                }
+                break;
+            }
+            case db_sha1 :
+            {
+                //db_write_byte_base64(line->sha1, HASH_SHA1_LEN, (FILE*)dbconf->dbc_out.dbP,i, DB_SHA1,line->attr);
+                char * str = db_write_byte_base64_str(line->sha1, HASH_SHA1_LEN, i, DB_SHA1,line->attr);
+                if(str == NULL)
+                    goto end;
+
+                if(cJSON_AddStringToObject(fileObj, db_field_names[db_sha1], str) == NULL)
+                {
+                    free(str);
+                    goto end;
+                }
+                break;
+            }
+            case db_rmd160 :
+            {
+                //db_write_byte_base64(line->rmd160, HASH_RMD160_LEN, (FILE*)dbconf->dbc_out.dbP,i, DB_RMD160,line->attr);
+                char * str = db_write_byte_base64_str(line->rmd160, HASH_RMD160_LEN, i, DB_RMD160,line->attr);
+                if(str == NULL)
+                    goto end;
+
+                if(cJSON_AddStringToObject(fileObj, db_field_names[db_rmd160], str) == NULL)
+                {
+                    free(str);
+                    goto end;
+                }
+                break;
+            }
+            case db_tiger :
+            {
+                //db_write_byte_base64(line->tiger, HASH_TIGER_LEN, (FILE*)dbconf->dbc_out.dbP,i, DB_TIGER,line->attr);
+                char * str = db_write_byte_base64_str(line->tiger, HASH_TIGER_LEN, i, DB_TIGER,line->attr);
+                if(str == NULL)
+                    goto end;
+
+                if(cJSON_AddStringToObject(fileObj, db_field_names[db_tiger], str) == NULL)
+                {
+                    free(str);
+                    goto end;
+                }
+                break;
+            }
+            case db_perm :
+            {
+                //fprintf(stdout,"++++++++++++++++++++++++++++++++++++++++++++++++++++++ db_perm\n");
+                //break;
+                //db_writeoct(line->perm,(FILE*)dbconf->dbc_out.dbP,i);
+                char * dst = NULL;
+                int ret = db_writeoct_ram(&dst, line->perm);
+                //fprintf(stdout,"+++ ret:%d dst:%s\n", ret, dst);
+                if(ret <= 0 || cJSON_AddStringToObject(fileObj, db_field_names[db_perm], dst) == NULL)
+                {
+                    //fprintf(stdout,"+++ ret:%d dst:%s\n", ret, dst);
+                    if(dst != NULL)
+                        free(dst);
+                    goto  end;
+                }
+                //fprintf(stdout,"+++ ret:%d dst:%s\n", ret, dst);
+                if(dst != NULL)
+                    free(dst);
+                break;
+            }
+            case db_crc32 :
+            {
+                //db_write_byte_base64(line->crc32, HASH_CRC32_LEN, (FILE*)dbconf->dbc_out.dbP,i, DB_CRC32,line->attr);
+                char * str = db_write_byte_base64_str(line->crc32, HASH_CRC32_LEN, i, DB_CRC32,line->attr);
+                if(str == NULL)
+                    goto end;
+
+                if(cJSON_AddStringToObject(fileObj, db_field_names[db_crc32], str) == NULL)
+                {
+                    free(str);
+                    goto end;
+                }
+                break;
+            }
+            case db_crc32b :
+            {
+                //db_write_byte_base64(line->crc32b, HASH_CRC32B_LEN, (FILE*)dbconf->dbc_out.dbP,i, DB_CRC32B,line->attr);
+                char * str = db_write_byte_base64_str(line->crc32b, HASH_CRC32B_LEN, i, DB_CRC32B,line->attr);
+                if(str == NULL)
+                    goto end;
+
+                if(cJSON_AddStringToObject(fileObj, db_field_names[db_crc32b], str) == NULL)
+                {
+                    free(str);
+                    goto end;
+                }
+                break;
+            }
+            case db_haval :
+            {
+                //db_write_byte_base64(line->haval, HASH_HAVAL256_LEN, (FILE*)dbconf->dbc_out.dbP,i, DB_HAVAL,line->attr);
+                char * str = db_write_byte_base64_str(line->haval, HASH_HAVAL256_LEN, i, DB_HAVAL,line->attr);
+                if(str == NULL)
+                    goto end;
+
+                if(cJSON_AddStringToObject(fileObj, db_field_names[db_haval], str) == NULL)
+                {
+                    free(str);
+                    goto end;
+                }
+                break;
+            }
+            case db_gost :
+            {
+                //db_write_byte_base64(line->gost , HASH_GOST_LEN, (FILE*)dbconf->dbc_out.dbP,i, DB_GOST,line->attr);
+                char * str = db_write_byte_base64_str(line->gost , HASH_GOST_LEN, i, DB_GOST,line->attr);
+                if(str == NULL)
+                    goto end;
+
+                if(cJSON_AddStringToObject(fileObj, db_field_names[db_gost], str) == NULL)
+                {
+                    free(str);
+                    goto end;
+                }
+                break;
+            }
+            case db_sha256 :
+            {
+                //db_write_byte_base64(line->sha256, HASH_SHA256_LEN, (FILE*)dbconf->dbc_out.dbP,i, DB_SHA256,line->attr);
+                char * str = db_write_byte_base64_str(line->sha256, HASH_SHA256_LEN, i, DB_SHA256,line->attr);
+                if(str == NULL)
+                    goto end;
+
+                if(cJSON_AddStringToObject(fileObj, db_field_names[db_sha256], str) == NULL)
+                {
+                    free(str);
+                    goto end;
+                }
+                break;
+            }
+            case db_sha512 :
+            {
+                //db_write_byte_base64(line->sha512, HASH_SHA512_LEN, (FILE*)dbconf->dbc_out.dbP,i, DB_SHA512,line->attr);
+                char * str = db_write_byte_base64_str(line->sha512, HASH_SHA512_LEN, i, DB_SHA512,line->attr);
+
+                if(str == NULL)
+                    goto end;
+
+                if(cJSON_AddStringToObject(fileObj, db_field_names[db_sha512], str) == NULL)
+                {
+                    free(str);
+                    goto end;
+                }
+                break;
+            }
+            case db_whirlpool :
+            {
+                //db_write_byte_base64(line->whirlpool, HASH_WHIRLPOOL_LEN, (FILE*)dbconf->dbc_out.dbP,i, DB_WHIRLPOOL,line->attr);
+                char * str = db_write_byte_base64_str(line->whirlpool, HASH_WHIRLPOOL_LEN, i, DB_WHIRLPOOL,line->attr);
+                if(str == NULL)
+                    goto end;
+
+                if(cJSON_AddStringToObject(fileObj, db_field_names[db_whirlpool], str) == NULL)
+                {
+                    free(str);
+                    goto end;
+                }
+                break;
+            }
+            case db_attr :
+            {
+                //db_writelong(line->attr, (FILE*)dbconf->dbc_out.dbP,i);
+                char * dst = NULL;
+                int ret = db_writelong_ram(&dst, line->attr);
+                if(ret <= 0 || cJSON_AddStringToObject(fileObj, db_field_names[db_attr], dst) == NULL)
+                {
+                    if(dst != NULL)
+                        free(dst);
+                    goto  end;
+                }
+                if(dst != NULL)
+                    free(dst);
+                break;
+            }
+#ifdef WITH_ACL
+            case db_acl :
+            {
+                //Does not support now
+                /*
+                db_writeacl(line->acl,(FILE*)dbconf->dbc_out.dbP,i);
+                */
+                break;
+            }
+#endif
+            case db_xattrs :
+            {
+                // Does not support now
+                /*
+                xattr_node *xattr = NULL;
+                size_t num = 0;
+
+                if (!line->xattrs)
+                {
+                    db_writelong(0, (FILE*)dbconf->dbc_out.dbP, i);
+                    break;
+                }
+
+                db_writelong(line->xattrs->num, (FILE*)dbconf->dbc_out.dbP, i);
+
+                xattr = line->xattrs->ents;
+                while (num < line->xattrs->num)
+                {
+                    dofprintf(",");
+                    db_writechar(xattr->key, (FILE*)dbconf->dbc_out.dbP, 0);
+                    dofprintf(",");
+                    db_write_byte_base64(xattr->val, xattr->vsz, (FILE*)dbconf->dbc_out.dbP, 0, 1, 1);
+
+                    ++xattr;
+                    ++num;
+                }
+                */
+                break;
+            }
+            case db_selinux :
+            {
+                //db_write_byte_base64((byte*)line->cntx, 0, (FILE*)dbconf->dbc_out.dbP, i, 1, 1);
+                char * str = db_write_byte_base64_str((byte*)line->cntx, 0, (FILE*)dbconf->dbc_out.dbP, i, 1, 1);
+                if(str == NULL)
+                    goto end;
+
+                if(cJSON_AddStringToObject(fileObj, db_field_names[db_md5], str) == NULL)
+                {
+                    free(str);
+                    goto end;
+                }
+                break;
+            }
+#ifdef WITH_E2FSATTRS
+            case db_e2fsattrs :
+            {
+                //db_writelong(line->e2fsattrs,(FILE*)dbconf->dbc_out.dbP,i);
+                if(cJSON_AddNumberToObject(fileObj, db_field_names[db_e2fsattrs], line->e2fsattrs) == NULL)
+                    goto  end;
+                break;
+            }
+#endif
+            case db_checkmask :
+            {
+                //db_writeoct(line->attr,(FILE*)dbconf->dbc_out.dbP,i);
+                char *dst = NULL;
+                int ret = db_writeoct(&dst, line->attr);
+                if(ret <= 0 || cJSON_AddStringToObject(fileObj, db_field_names[db_checkmask], dst) == NULL)
+                {
+                    if(dst != NULL)
+                        free(dst);
+                    goto  end;
+                }
+                if(dst != NULL)
+                    free(dst);
+                break;
+            }
+            default :
+            {
+                error(0,"Not implemented in db_writeline_file %i\n", dbconf->db_out_order[i]);
+                //return RETFAIL;
+                return NULL;
+            }
+        }
+    }
+
+    return fileObj;
+
+end:
+    fprintf(stdout,"+++++++ dbJSON_line2FileObject() fail at i:%d name:%s\n", i, db_field_names[i]);
+    cJSON_Delete(fileObj);
+    return NULL;
+}
+
+int dbJSON_writeFileObject(JsonDB *jDB, db_line* line, db_config* dbconf)
+{
+    cJSON * fileObj = dbJSON_line2FileObject(line, dbconf);
+    if(fileObj != NULL)
+    {
+        fprintf(stdout,"+++ got JSON file obj +++\n");
+        cJSON_AddItemToArray(jDB->fileList, fileObj);
+    }
     return 0;
 }
 

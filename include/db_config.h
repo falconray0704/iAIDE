@@ -349,6 +349,7 @@ typedef struct _JsonDB {
     unsigned char filePath[1024];
 
     cJSON * db;
+    cJSON * fileList;
 } JsonDB;
 
 typedef struct db_config {
