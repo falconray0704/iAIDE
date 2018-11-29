@@ -722,6 +722,14 @@ int dbJSON_close(JsonDB * jDB)
     if(jDB->isDump2File)
     {
         dbJSON_save2File(jDB);
+        if (chmod(jDB->filePath, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH) < 0)
+        {
+            error(0,_("Couldn't enable file %s for all reading.\n"), jDB->filePath);
+        }
+        else
+        {
+            error(0,_("Enabled file %s for all reading success.\n"), jDB->filePath);
+        }
     }
     cJSON_Delete(jDB->db);
     return 0;
