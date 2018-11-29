@@ -346,7 +346,8 @@ typedef struct _DB_Container {
 
 typedef struct _JsonDB {
     int isDump2File;
-    unsigned char filePath[1024];
+    //unsigned char filePath[1024];
+    unsigned char * filePath;
 
     cJSON * db;
     cJSON * fileList;

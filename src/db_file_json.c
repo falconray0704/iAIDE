@@ -226,6 +226,12 @@ JsonDB* dbJSON_New(int isDump2File, unsigned char *filePath)
 
     if(jDB->isDump2File)
     {
+        int len;
+        if(filePath == NULL)
+            goto end;
+
+        len = strlen(filePath);
+        jDB->filePath = (unsigned char *)calloc(len, 1);
         strcpy(jDB->filePath, filePath);
     }
 
@@ -238,6 +244,10 @@ JsonDB* dbJSON_New(int isDump2File, unsigned char *filePath)
     jDB->fileList = cJSON_AddArrayToObject(jDB->db, "filsDB");
 
     return jDB;
+
+end:
+    free(jDB);
+    return NULL;
 }
 
 int dbJSON_writespec(JsonDB *jDB, db_config* conf)
@@ -708,6 +718,60 @@ int dbJSON_close(JsonDB * jDB)
 {
 
     cJSON_Delete(jDB->db);
+    return 0;
+}
+
+int dbJSON_save2File(JsonDB * jDB)
+{
+    FILE* fh=NULL;
+    int fd;
+    struct flock fl;
+    char *jDBStr = NULL;
+
+    if(jDB->filePath != NULL)
+    {
+        jDB->filePath = expand_tilde(jDB->filePath);
+        fd=open(jDB->filePath,O_CREAT|O_RDWR,0666);
+        if(fd==-1)
+        {
+            error(0,_("Couldn't open file %s for %s"), jDB->filePath, "writing\n");
+            return -1;
+        }
+
+        fl.l_type = F_WRLCK;
+        fl.l_whence = SEEK_SET;
+        fl.l_start = 0;
+        fl.l_len = 0;
+        if (fcntl(fd, F_SETLK, &fl) == -1)
+        {
+            if (fcntl(fd, F_SETLK, &fl) == -1)
+                error(0,_("File %s is locked by another process.\n"),jDB->filePath);
+            else
+                error(0,_("Cannot get lock for file %s"),jDB->filePath);
+            return NULL;
+        }
+        if(ftruncate(fd,0)==-1)
+            error(0,_("Error truncating file %s"),jDB->filePath);
+
+        fh=fdopen(fd,"w+");
+        if(fh==NULL)
+        {
+            error(0,_("Couldn't open file %s for %s"),jDB->filePath, "writing\n");
+            return -1;
+        }
+
+        jDBStr = cJSON_Print(jDB->db);
+        if(jDBStr != NULL)
+        {
+            fprintf(stdout, "\n=== jDB:\n%s\n\n", jDBStr);
+            fwrite(jDBStr, 1, strlen(jDBStr), fh);
+            free(jDBStr);
+        }
+
+        fclose(fh);
+    }
+
+
     return 0;
 }
 

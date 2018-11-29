@@ -628,6 +628,7 @@ int main(int argc,char**argv)
     fprintf(stdout, "+++ RAM:%d +++\n", conf->enable_RAM_DB);
     fprintf(stdout, "+++ JSON:%d +++\n", conf->enable_JSON_DB);
 
+
     errorno=commandconf('C',conf->config_file);
 
     errorno=commandconf('D',"");
@@ -757,7 +758,15 @@ int main(int argc,char**argv)
             /*Do JSON dumpping init*/
             if(conf->enable_JSON_DB)
             {
-                conf->jDB = dbJSON_New(0,"");
+                int len = strlen(conf->dbc_out.db_url->value);
+                len += strlen(".json");
+                char * jPath = (char *)calloc(len +1, 1);
+                strcpy(jPath, conf->dbc_out.db_url->value);
+                strcat(jPath,".json");
+
+                conf->jDB = dbJSON_New(1, jPath);
+                free(jPath);
+
                 if(dbJSON_writespec(conf->jDB, conf) != 0)
                 {
                     fprintf(stdout, "--- dbJSON_writespec() fail!\n");
@@ -784,9 +793,17 @@ int main(int argc,char**argv)
         populate_tree(conf->tree);
         db_close();
 
+        /*
+
         jDBStr = cJSON_Print(conf->jDB->db);
         fprintf(stdout, "\n=== jDB:\n%s\n\n", jDBStr);
         free(jDBStr);
+
+         */
+        if(conf->enable_JSON_DB)
+        {
+            dbJSON_save2File(conf->jDB);
+        }
 
         exit(gen_report(conf->tree));
 

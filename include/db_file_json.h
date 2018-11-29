@@ -51,6 +51,7 @@ JsonDB* dbJSON_New(int isDump2File, unsigned char *filePath);
 int dbJSON_writespec(JsonDB *jDB, db_config* conf);
 int dbJSON_writeFileObject(JsonDB *jDB, db_line* line, db_config *dbconf);
 int dbJSON_close(JsonDB * jDB);
+int dbJSON_save2File(JsonDB * jDB);
 
 #ifdef WITH_ZLIB
 //void handle_gzipped_input_ram(unsigned char *out,gzFile*);
