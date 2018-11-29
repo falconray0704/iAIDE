@@ -223,6 +223,7 @@ JsonDB* dbJSON_New(int isDump2File, unsigned char *filePath)
 {
     JsonDB * jDB = (JsonDB*)calloc(sizeof(JsonDB), 1);
     jDB->isDump2File = isDump2File == 0 ? 0 : 1;
+    jDB->filePath = NULL;
 
     if(jDB->isDump2File)
     {
@@ -708,7 +709,8 @@ int dbJSON_writeFileObject(JsonDB *jDB, db_line* line, db_config* dbconf)
     cJSON * fileObj = dbJSON_line2FileObject(line, dbconf);
     if(fileObj != NULL)
     {
-        fprintf(stdout,"+++ got JSON file obj +++\n");
+        if(++jDB->itemCount % 2000 == 0)
+            fprintf(stdout,"+++ got JSON file obj %d +++\n", jDB->itemCount);
         cJSON_AddItemToArray(jDB->fileList, fileObj);
     }
     return 0;
@@ -717,6 +719,10 @@ int dbJSON_writeFileObject(JsonDB *jDB, db_line* line, db_config* dbconf)
 int dbJSON_close(JsonDB * jDB)
 {
 
+    if(jDB->isDump2File)
+    {
+        dbJSON_save2File(jDB);
+    }
     cJSON_Delete(jDB->db);
     return 0;
 }
@@ -731,7 +737,9 @@ int dbJSON_save2File(JsonDB * jDB)
     if(jDB->filePath != NULL)
     {
         jDB->filePath = expand_tilde(jDB->filePath);
-        fd=open(jDB->filePath,O_CREAT|O_RDWR,0666);
+        //fd=open(jDB->filePath, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+        fd=open(jDB->filePath,O_CREAT|O_RDWR|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+        //fd=open(jDB->filePath, O_WRONLY | O_CREAT , 0666);
         if(fd==-1)
         {
             error(0,_("Couldn't open file %s for %s"), jDB->filePath, "writing\n");
@@ -756,14 +764,15 @@ int dbJSON_save2File(JsonDB * jDB)
         fh=fdopen(fd,"w+");
         if(fh==NULL)
         {
-            error(0,_("Couldn't open file %s for %s"),jDB->filePath, "writing\n");
+            error(0,_("Couldn't fopen file %s for %s"),jDB->filePath, "writing\n");
             return -1;
         }
 
+        fprintf(stdout,"+++ Total got JSON file obj %d +++\n", jDB->itemCount);
         jDBStr = cJSON_Print(jDB->db);
         if(jDBStr != NULL)
         {
-            fprintf(stdout, "\n=== jDB:\n%s\n\n", jDBStr);
+            //fprintf(stdout, "\n=== jDB:\n%s\n\n", jDBStr);
             fwrite(jDBStr, 1, strlen(jDBStr), fh);
             free(jDBStr);
         }

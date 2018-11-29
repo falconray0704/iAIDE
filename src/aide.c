@@ -802,7 +802,7 @@ int main(int argc,char**argv)
          */
         if(conf->enable_JSON_DB)
         {
-            dbJSON_save2File(conf->jDB);
+            dbJSON_close(conf->jDB);
         }
 
         exit(gen_report(conf->tree));

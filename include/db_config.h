@@ -351,6 +351,7 @@ typedef struct _JsonDB {
 
     cJSON * db;
     cJSON * fileList;
+    unsigned int itemCount;
 } JsonDB;
 
 typedef struct db_config {
