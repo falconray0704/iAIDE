@@ -652,19 +652,21 @@ int main(int argc,char**argv)
     }
     fprintf(stdout,"\n");
 
-    conf->tree=gen_tree(conf->selrxlst,conf->negrxlst,conf->equrxlst);
+    fprintf(stdout, "+++ gen_tree() begin +++\n");
+    conf->tree = gen_tree(conf->selrxlst,conf->negrxlst,conf->equrxlst);
+    fprintf(stdout, "+++ gen_tree() end +++\n");
 
     /* Let's do some sanity checks for the config */
-    if(cmpurl(conf->dbc_in.db_url,conf->dbc_out.db_url)==RETOK)
+    if(cmpurl(conf->dbc_in.db_url,conf->dbc_out.db_url) == RETOK)
     {
         error(4,_("WARNING:Input and output database urls are the same.\n"));
-        if((conf->action&DO_INIT)&&(conf->action&DO_COMPARE))
+        if((conf->action & DO_INIT) && (conf->action & DO_COMPARE))
         {
             error(0,_("Input and output database urls cannot be the same "
                         "when doing database update\n"));
             exit(INVALID_ARGUMENT_ERROR);
         }
-        if(conf->action&DO_DIFF)
+        if(conf->action & DO_DIFF)
         {
             error(0,_("Both input databases cannot be the same "
                         "when doing database compare\n"));
@@ -672,13 +674,14 @@ int main(int argc,char**argv)
         }
     }
 
-    if((conf->action&DO_DIFF)&&(!(conf->dbc_new.db_url)||!(conf->dbc_in.db_url)))
+    if((conf->action & DO_DIFF) && (!(conf->dbc_new.db_url) || !(conf->dbc_in.db_url)))
     {
         error(0,_("Must have both input databases defined for "
                     "database compare.\n"));
         exit(INVALID_ARGUMENT_ERROR);
     }
-    if (conf->action&(DO_INIT|DO_COMPARE) && conf->root_prefix_length > 0)
+
+    if (conf->action & (DO_INIT | DO_COMPARE) && conf->root_prefix_length > 0)
     {
         DIR *dir;
         if((dir = opendir(conf->root_prefix)) != NULL)
@@ -687,7 +690,7 @@ int main(int argc,char**argv)
         }
         else
         {
-            char* er=strerror(errno);
+            char* er = strerror(errno);
             if (er!=NULL)
             {
                 error(0,"opendir() for root prefix %s failed: %s\n", conf->root_prefix,er);
@@ -699,22 +702,24 @@ int main(int argc,char**argv)
             exit(INVALID_ARGUMENT_ERROR);
         }
     }
+
 #ifdef WITH_MHASH
-    if(conf->config_check&&FORCECONFIGMD)
+    if(conf->config_check && FORCECONFIGMD)
     {
         error(0,"Can't give config checksum when compiled with --enable-forced_configmd\n");
         exit(INVALID_ARGUMENT_ERROR);
     }
 
-    if((conf->do_configmd||conf->config_check)&& conf->confmd!=0)
+    if((conf->do_configmd || conf->config_check) && conf->confmd!=0)
     {
         /* The patch automatically adds a newline so will also have to add it. */
-        if(newlinelastinconfig==0)
+        if(newlinelastinconfig == 0)
         {
             mhash(conf->confmd,"\n",1);
-        };
+        }
+
         mhash(conf->confmd, NULL,0);
-        dig=(byte*)malloc(sizeof(byte)*mhash_get_block_size(conf->confhmactype));
+        dig=(byte*)malloc(sizeof(byte) * mhash_get_block_size(conf->confhmactype));
         mhash_deinit(conf->confmd,(void*)dig);
         digstr=encode_base64(dig,mhash_get_block_size(conf->confhmactype));
 
@@ -737,30 +742,33 @@ int main(int argc,char**argv)
         }
     }
 #endif
-    conf->use_initial_errorsto=0;
+
+    conf->use_initial_errorsto = 0;
     if (!conf->config_check)
     {
         char * jDBStr = NULL;
-        if(conf->action&DO_INIT)
+        if(conf->action & DO_INIT)
         {
-            if(db_init(DB_WRITE)==RETFAIL)
+            if(db_init(DB_WRITE) == RETFAIL)
             {
                 exit(IO_ERROR);
             }
-            /* FIXME db_out_order info should be taken from tree/config */ 
+
+            /* FIXME db_out_order info should be taken from tree/config */
             /* update_db_out_order(-1); OOPS. It was allready done by append_rxlist
             :) */
-            if(db_writespec(conf)==RETFAIL)
+            if(db_writespec(conf) == RETFAIL)
             {
                 error(0,_("Error while writing database. Exiting..\n"));
                 exit(IO_ERROR);
             }
+
             /*Do JSON dumpping init*/
             if(conf->enable_JSON_DB)
             {
                 int len = strlen(conf->dbc_out.db_url->value);
                 len += strlen(".json");
-                char * jPath = (char *)calloc(len +1, 1);
+                char * jPath = (char *)calloc(len + 1, 1);
                 strcpy(jPath, conf->dbc_out.db_url->value);
                 strcat(jPath,".json");
 
@@ -774,23 +782,28 @@ int main(int argc,char**argv)
             }
 
         }
-        if((conf->action&DO_INIT)||(conf->action&DO_COMPARE))
+        if((conf->action & DO_INIT) || (conf->action & DO_COMPARE))
         {
-            if(db_init(DB_DISK)==RETFAIL)
+            if(db_init(DB_DISK) == RETFAIL)
                 exit(IO_ERROR);
         }
-        if((conf->action&DO_COMPARE)||(conf->action&DO_DIFF))
+        if((conf->action & DO_COMPARE) || (conf->action & DO_DIFF))
         {
-            if(db_init(DB_OLD)==RETFAIL)
+            if(db_init(DB_OLD) == RETFAIL)
                 exit(IO_ERROR);
         }
-        if(conf->action&DO_DIFF)
+        if(conf->action & DO_DIFF)
         {
-            if(db_init(DB_NEW)==RETFAIL)
+            if(db_init(DB_NEW) == RETFAIL)
                 exit(IO_ERROR);
         }
 
         populate_tree(conf->tree);
+
+        fprintf(stdout, "\n+++ Print tree after populate_tree() begin +++\n");
+        print_tree(conf->tree);
+        fprintf(stdout, "\n+++ Print tree after populate_tree() end +++\n");
+
         db_close();
 
         /*
@@ -815,13 +828,13 @@ int main(int argc,char**argv)
         {
             error(0,"Config checked. Use the following to patch your config file.\n");
             error(0,"0a1\n");
-            if(newlinelastinconfig==1)
+            if(newlinelastinconfig == 1)
             {
-                error(0,"> @@begin_config %s\n%lia%li\n> @@end_config\n",digstr,conf_lineno-1,conf_lineno+1);
+                error(0,"> @@begin_config %s\n%lia%li\n> @@end_config\n", digstr ,conf_lineno - 1, conf_lineno + 1);
             }
             else
             {
-                error(0,"> @@begin_config %s\n%lia%li\n> @@end_config\n",digstr,conf_lineno,conf_lineno+2);
+                error(0,"> @@begin_config %s\n%lia%li\n> @@end_config\n", digstr, conf_lineno, conf_lineno + 2);
             }
             free(dig);
             free(digstr);
@@ -830,7 +843,7 @@ int main(int argc,char**argv)
     }
     return RETOK;
 }
+
 const char* aide_key_3=CONFHMACKEY_03;
 const char* db_key_3=DBHMACKEY_03;
 
-// vi: ts=8 sw=8

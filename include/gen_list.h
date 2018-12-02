@@ -39,13 +39,14 @@
 
 /* DB_FOO are anded together to form rx_rule's attr */
 
-typedef struct rx_rule {
-  char* rx; /* Regular expression in text form */
-  pcre* crx; /* Compiled regexp */
-  DB_ATTR_TYPE attr; /* Which attributes to save */
-  long  conf_lineno; /* line no. of rule definition*/
-  RESTRICTION_TYPE restriction;
-} rx_rule;
+typedef struct rx_rule 
+{
+    char* rx; /* Regular expression in text form */
+    pcre* crx; /* Compiled regexp */
+    DB_ATTR_TYPE attr; /* Which attributes to save */
+    long  conf_lineno; /* line no. of rule definition*/
+    RESTRICTION_TYPE restriction;
+}rx_rule;
 
 int compare_node_by_path(const void *n1, const void *n2);
 

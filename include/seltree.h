@@ -29,7 +29,7 @@ struct seltree;
 /* seltree structure
  * lists have regex_t* in them
  * checked is whether or not the node has been checked yet and status
- * when added  
+ * when added
  * path is the path of the node
  * parent is the parent, NULL if root
  * childs is list of seltree*:s
@@ -50,7 +50,7 @@ typedef struct seltree {
   int checked;
 
   long      conf_lineno;
-  char*     rx;    
+  char*     rx;
 
   DB_ATTR_TYPE attr;
 

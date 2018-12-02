@@ -257,9 +257,9 @@ db_line* db_readline(int db)
     int* db_osize=0;
     DB_FIELD** db_order=NULL;
 
-    switch (db) 
+    switch (db)
     {
-        case DB_DISK: 
+        case DB_DISK:
         {
             /*
             Nothing else to be done?
@@ -268,7 +268,7 @@ db_line* db_readline(int db)
             return s;
         }
 
-        case DB_OLD: 
+        case DB_OLD:
         {
             db_url=conf->dbc_in.db_url;
             db_filep=&(conf->dbc_in.dbP);
@@ -276,7 +276,7 @@ db_line* db_readline(int db)
             db_order=&(conf->db_in_order);
             break;
         }
-        case DB_NEW: 
+        case DB_NEW:
         {
             db_url=conf->dbc_new.db_url;
             db_filep=&(conf->dbc_new.dbP);
@@ -985,3 +985,4 @@ void free_db_line(db_line* dl)
 
 const char* aide_key_5=CONFHMACKEY_05;
 const char* db_key_5=DBHMACKEY_05;
+

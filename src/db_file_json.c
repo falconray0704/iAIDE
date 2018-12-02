@@ -50,6 +50,7 @@
 
 #define BUFSIZE 16384
 
+
 #include "md.h"
 
 #ifdef WITH_ZLIB
@@ -309,6 +310,10 @@ end:
 
 cJSON * dbJSON_line2FileObject(db_line* line, db_config* dbconf)
 {
+
+    const char time_format[] = "%Y-%m-%d %H:%M:%S %z";
+    const int time_string_len = 26;
+
     int i;
     cJSON * item = NULL;
     cJSON * fileObj = cJSON_CreateObject();
@@ -342,6 +347,7 @@ cJSON * dbJSON_line2FileObject(db_line* line, db_config* dbconf)
             }
             case db_mtime :
             {
+                /*
                 //db_write_time_base64(line->mtime,(FILE*)dbconf->dbc_out.dbP,i);
                 char * dst = NULL;
                 int ret = db_write_time_base64_ram(&dst, line->mtime);
@@ -353,14 +359,40 @@ cJSON * dbJSON_line2FileObject(db_line* line, db_config* dbconf)
                 }
                 if(dst != NULL)
                     free(dst);
+                */
+                char *dst = NULL;
+                dst = calloc(time_string_len * sizeof(char), 1);
+                strftime(dst, time_string_len, time_format, localtime(&line->mtime));
+                if(cJSON_AddStringToObject(fileObj, db_field_names[db_mtime ], dst) == NULL)
+                {
+                    if(dst != NULL)
+                        free(dst);
+                    goto  end;
+                }
+                if(dst != NULL)
+                    free(dst);
+
                 break;
             }
             case db_atime :
             {
                 //db_write_time_base64(line->atime,(FILE*)dbconf->dbc_out.dbP,i);
+                /*
                 char * dst = NULL;
                 int ret = db_write_time_base64_ram(&dst, line->atime);
                 if(ret <= 0 || cJSON_AddStringToObject(fileObj, db_field_names[db_atime ], dst) == NULL)
+                {
+                    if(dst != NULL)
+                        free(dst);
+                    goto  end;
+                }
+                if(dst != NULL)
+                    free(dst);
+                    */
+                char *dst = NULL;
+                dst = calloc(time_string_len * sizeof(char), 1);
+                strftime(dst, time_string_len, time_format, localtime(&line->atime));
+                if(cJSON_AddStringToObject(fileObj, db_field_names[db_atime ], dst) == NULL)
                 {
                     if(dst != NULL)
                         free(dst);
@@ -373,9 +405,22 @@ cJSON * dbJSON_line2FileObject(db_line* line, db_config* dbconf)
             case db_ctime :
             {
                 //db_write_time_base64(line->ctime,(FILE*)dbconf->dbc_out.dbP,i);
+                /*
                 char * dst = NULL;
                 int ret = db_write_time_base64_ram(&dst, line->ctime);
                 if(ret <= 0 || cJSON_AddStringToObject(fileObj, db_field_names[db_ctime ], dst) == NULL)
+                {
+                    if(dst != NULL)
+                        free(dst);
+                    goto  end;
+                }
+                if(dst != NULL)
+                    free(dst);
+                    */
+                char *dst = NULL;
+                dst = calloc(time_string_len * sizeof(char), 1);
+                strftime(dst, time_string_len, time_format, localtime(&line->ctime));
+                if(cJSON_AddStringToObject(fileObj, db_field_names[db_ctime ], dst) == NULL)
                 {
                     if(dst != NULL)
                         free(dst);
