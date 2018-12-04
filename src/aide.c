@@ -779,8 +779,9 @@ int main(int argc,char**argv)
                 {
                     fprintf(stdout, "--- dbJSON_writespec() fail!\n");
                 }
-            }
 
+                dbJSON_WriteRxList(conf->jDB, conf);
+            }
         }
         if((conf->action & DO_INIT) || (conf->action & DO_COMPARE))
         {

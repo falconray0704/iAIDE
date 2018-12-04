@@ -761,6 +761,117 @@ int dbJSON_writeFileObject(JsonDB *jDB, db_line* line, db_config* dbconf)
     return 0;
 }
 
+cJSON * dbJSON_RxRule2RxObject(rx_rule *rxRule)
+{
+    cJSON * item = NULL;
+    cJSON * rxRuleObj = NULL;
+
+    if(rxRule == NULL)
+    {
+        fprintf(stdout, "[%s:%d:%s] return NULL\n", __FILE__, __LINE__, __func__);
+        return NULL;
+    }
+
+    rxRuleObj = cJSON_CreateObject();
+    if(rxRule == NULL)
+    {
+        fprintf(stdout, "[%s:%d:%s] goto end\n", __FILE__, __LINE__, __func__);
+        goto end;
+    }
+
+    item = cJSON_AddStringToObject(rxRuleObj, "rx", rxRule->rx);
+    if(item == NULL)
+    {
+        fprintf(stdout, "[%s:%d:%s] goto end, rx:%s\n", __FILE__, __LINE__, __func__, rxRule->rx);
+        goto end;
+    }
+
+    item = cJSON_AddNumberToObject(rxRuleObj, "cfgNo", rxRule->conf_lineno);
+    if(item == NULL)
+    {
+        fprintf(stdout, "[%s:%d:%s] goto end\n", __FILE__, __LINE__, __func__);
+        goto end;
+    }
+
+    item = cJSON_AddNumberToObject(rxRuleObj, "attr", rxRule->attr);
+    if(item == NULL)
+    {
+        fprintf(stdout, "[%s:%d:%s] goto end\n", __FILE__, __LINE__, __func__);
+        goto end;
+    }
+
+    item = cJSON_AddNumberToObject(rxRuleObj, "restriction", rxRule->restriction);
+    if(item == NULL)
+    {
+        fprintf(stdout, "[%s:%d:%s] goto end\n", __FILE__, __LINE__, __func__);
+        goto end;
+    }
+
+    return rxRuleObj;
+
+end:
+    cJSON_Delete(rxRuleObj);
+    return NULL;
+}
+
+cJSON * dbJSON_RxList2Array(list *rxList)
+{
+    list * item = NULL;
+
+    cJSON * rxArray = NULL;
+
+    rxArray = cJSON_CreateArray();
+    if(rxArray == NULL)
+    {
+        fprintf(stdout, "[%s:%d:%s] return NULL\n", __FILE__, __LINE__, __func__);
+        return NULL;
+    }
+
+    if(rxList == NULL)
+    {
+        return rxArray;
+    }
+
+    for(item = rxList; item != NULL; item = item->next)
+    {
+        rx_rule *rxRule = (rx_rule*)item->data;
+        //fprintf(stdout, "[%s:%d:%s] rx:%s \n", __FILE__, __LINE__, __func__, rxRule->rx);
+        cJSON * rxJ = dbJSON_RxRule2RxObject(rxRule);
+        if(rxJ == NULL)
+        {
+            fprintf(stdout, "[%s:%d:%s] goto end\n", __FILE__, __LINE__, __func__);
+            goto end;
+        }
+
+        cJSON_AddItemToArray(rxArray, rxJ);
+    }
+
+    return rxArray;
+
+end:
+    cJSON_Delete(rxArray);
+    return NULL;
+}
+
+int dbJSON_WriteRxList(JsonDB *jDB, db_config* conf)
+{
+    cJSON * rx = cJSON_CreateObject();
+
+    cJSON * sArray = dbJSON_RxList2Array(conf->selrxlst);
+    cJSON * nArray = dbJSON_RxList2Array(conf->negrxlst);
+    cJSON * eArray = dbJSON_RxList2Array(conf->equrxlst);
+
+    cJSON_AddItemToObject(rx, "sRx", sArray);
+    cJSON_AddItemToObject(rx, "nRx", nArray);
+    cJSON_AddItemToObject(rx, "eRx", eArray);
+
+    cJSON_AddItemToObject(jDB->db, "rxLists", rx);
+
+    return 0;
+}
+
+//int dbJSON_WriteRxCfgs(JsonDB *jDB, )
+
 int dbJSON_close(JsonDB * jDB)
 {
 
