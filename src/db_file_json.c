@@ -243,7 +243,7 @@ JsonDB* dbJSON_New(int isDump2File, unsigned char *filePath)
         return NULL;
     }
 
-    jDB->fileList = cJSON_AddArrayToObject(jDB->db, "filsDB");
+    jDB->fileList = cJSON_AddArrayToObject(jDB->db, "filesDB");
 
     return jDB;
 
@@ -341,9 +341,19 @@ cJSON * dbJSON_line2FileObject(db_line* line, db_config* dbconf)
             case db_bcount :
             {
                 //db_writeint(line->bcount,(FILE*)dbconf->dbc_out.dbP,i);
-                if(cJSON_AddNumberToObject(fileObj, db_field_names[db_bcount], line->bcount) == NULL)
+                //if(cJSON_AddNumberToObject(fileObj, db_field_names[db_bcount], line->bcount) == NULL)
+                //    goto  end;
+                char * dst = NULL;
+                int ret = db_writelong_ram(&dst, line->bcount);
+                if(ret <= 0 || cJSON_AddStringToObject(fileObj, db_field_names[db_bcount], dst) == NULL)
+                {
+                    if(dst != NULL)
+                        free(dst);
                     goto  end;
-                break;
+                }
+                if(dst != NULL)
+                    free(dst);
+               break;
             }
             case db_mtime :
             {
@@ -433,15 +443,37 @@ cJSON * dbJSON_line2FileObject(db_line* line, db_config* dbconf)
             case db_inode :
             {
                 //db_writeint(line->inode,(FILE*)dbconf->dbc_out.dbP,i);
-                if(cJSON_AddNumberToObject(fileObj, db_field_names[db_inode], line->inode) == NULL)
+                //if(cJSON_AddNumberToObject(fileObj, db_field_names[db_inode], line->inode) == NULL)
+                //    goto  end;
+                char * dst = NULL;
+                int ret = db_writelong_ram(&dst, line->inode);
+                if(ret <= 0 || cJSON_AddStringToObject(fileObj, db_field_names[db_inode], dst) == NULL)
+                {
+                    if(dst != NULL)
+                        free(dst);
                     goto  end;
+                }
+                if(dst != NULL)
+                    free(dst);
+
                 break;
             }
             case db_lnkcount :
             {
                 //db_writeint(line->nlink,(FILE*)dbconf->dbc_out.dbP,i);
-                if(cJSON_AddNumberToObject(fileObj, db_field_names[db_lnkcount], line->nlink) == NULL)
+                //if(cJSON_AddNumberToObject(fileObj, db_field_names[db_lnkcount], line->nlink) == NULL)
+                //    goto  end;
+                char * dst = NULL;
+                int ret = db_writelong_ram(&dst, line->nlink);
+                if(ret <= 0 || cJSON_AddStringToObject(fileObj, db_field_names[db_lnkcount], dst) == NULL)
+                {
+                    if(dst != NULL)
+                        free(dst);
                     goto  end;
+                }
+                if(dst != NULL)
+                    free(dst);
+
                 break;
             }
             case db_uid :
@@ -461,8 +493,19 @@ cJSON * dbJSON_line2FileObject(db_line* line, db_config* dbconf)
             case db_size :
             {
                 //db_writelong(line->size,(FILE*)dbconf->dbc_out.dbP,i);
-                if(cJSON_AddNumberToObject(fileObj, db_field_names[db_size], line->size) == NULL)
+                //if(cJSON_AddNumberToObject(fileObj, db_field_names[db_size], line->size) == NULL)
+                //    goto  end;
+                char * dst = NULL;
+                int ret = db_writelong_ram(&dst, line->size);
+                if(ret <= 0 || cJSON_AddStringToObject(fileObj, db_field_names[db_size], dst) == NULL)
+                {
+                    if(dst != NULL)
+                        free(dst);
                     goto  end;
+                }
+                if(dst != NULL)
+                    free(dst);
+
                 break;
             }
             case db_md5 :
@@ -701,7 +744,7 @@ cJSON * dbJSON_line2FileObject(db_line* line, db_config* dbconf)
                 if(str == NULL)
                     goto end;
 
-                if(cJSON_AddStringToObject(fileObj, db_field_names[db_md5], str) == NULL)
+                if(cJSON_AddStringToObject(fileObj, db_field_names[db_selinux], str) == NULL)
                 {
                     free(str);
                     goto end;
