@@ -747,6 +747,12 @@ int main(int argc,char**argv)
     if (!conf->config_check)
     {
         char * jDBStr = NULL;
+        fprintf(stdout, "\n[%s:%d:%s] +++ Confs 1 +++ check:%d limit:%p Action:%x rbase16:%d rQuiet:%d rDetailInit:%d \n",
+                __FILE__, __LINE__, __func__, conf->config_check, conf->limit, conf->action,
+                conf->report_base16, conf->report_quiet, conf->report_detailed_init );
+        fprintf(stdout, "\n[%s:%d:%s] +++ Confs 2 +++ Grouped:%d summarize_changes:%d verbose_level:%d \n",
+                __FILE__, __LINE__, __func__, conf->grouped, conf->summarize_changes, conf->verbose_level);
+
         if(conf->action & DO_INIT)
         {
             if(db_init(DB_WRITE) == RETFAIL)
@@ -801,6 +807,12 @@ int main(int argc,char**argv)
 
         populate_tree(conf->tree);
 
+        fprintf(stdout, "\n[%s:%d:%s] +++ Confs 1 +++ check:%d limit:%p Action:%x rbase16:%d rQuiet:%d rDetailInit:%d \n",
+                __FILE__, __LINE__, __func__, conf->config_check, conf->limit, conf->action,
+                conf->report_base16, conf->report_quiet, conf->report_detailed_init );
+        fprintf(stdout, "\n[%s:%d:%s] +++ Confs 2 +++ Grouped:%d summarize_changes:%d verbose_level:%d \n",
+                __FILE__, __LINE__, __func__, conf->grouped, conf->summarize_changes, conf->verbose_level);
+
         fprintf(stdout, "\n+++ Print tree after populate_tree() begin +++\n");
         print_tree(conf->tree);
         fprintf(stdout, "\n+++ Print tree after populate_tree() end +++\n");
@@ -808,7 +820,6 @@ int main(int argc,char**argv)
         db_close();
 
         /*
-
         jDBStr = cJSON_Print(conf->jDB->db);
         fprintf(stdout, "\n=== jDB:\n%s\n\n", jDBStr);
         free(jDBStr);
