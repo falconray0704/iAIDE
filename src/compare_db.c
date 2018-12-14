@@ -496,6 +496,16 @@ static void print_line(seltree* node)
         int i;
         int length = sizeof(summary_attributes)/sizeof(DB_ATTR_TYPE);
         char* summary = malloc ((length+1) * sizeof (char));
+        /*
+        if (strcmp(node->path, "/file_a") == 0)
+        {
+            fprintf(stdout, "\n[%s:%d:%s] [%s] checked:0x%x attr:0x%llx ch_attr:0x%llx fAttr:0x%llx cAttr:0x%llx rAttr:0x%llx aAttr:0x%llx",
+                    __FILE__, __LINE__, __func__, node->path, node->checked, node->attr, node->changed_attrs,
+                    forced_attrs, ignored_changed_attrs, ignored_removed_attrs, ignored_added_attrs);
+            fprintf(stdout, "\n[%s:%d:%s] [%s - old] size:%d attr:0x%x\n ", __FILE__, __LINE__, __func__, node->path, node->old_data->size, node->old_data->attr);
+            fprintf(stdout, "\n[%s:%d:%s] [%s - new] size:%d attr:0x%x\n ", __FILE__, __LINE__, __func__, node->path, node->new_data->size, node->new_data->attr);
+        }
+        */
         if (node->checked & (NODE_ADDED|NODE_REMOVED))
         {
             summary[0] = get_file_type_char((node->checked & NODE_REMOVED ? node->old_data : node->new_data)->perm);
@@ -514,45 +524,46 @@ static void print_line(seltree* node)
                 switch (i)
                 {
                     case 0:
-                        summary[i]=get_file_type_char((node->new_data)->perm);
+                        summary[i] = get_file_type_char((node->new_data)->perm);
                         continue;
                     case 2:
-                        if (summary_attributes[i]&(node->changed_attrs&(~ignored_changed_attrs)) && (node->old_data)->size > (node->new_data)->size)
+                        if (summary_attributes[i] & (node->changed_attrs & (~ignored_changed_attrs)) && (node->old_data)->size > (node->new_data)->size)
                         {
                             c = '<';
                         }
                         u = '=';
                         break;
                 }
-                if (summary_attributes[i]&node->changed_attrs&(forced_attrs|(~ignored_changed_attrs)))
+
+                if (summary_attributes[i] & node->changed_attrs & (forced_attrs|(~ignored_changed_attrs)))
                 {
-                    summary[i]=c;
+                    summary[i] = c;
                 }
                 else if (summary_attributes[i] & ((node->old_data)->attr & ~((node->new_data)->attr) & (forced_attrs|~(ignored_removed_attrs))) )
                 {
-                    summary[i]=r;
+                    summary[i]= r ;
                 }
-                else if (summary_attributes[i]&~((node->old_data)->attr)&(node->new_data)->attr&(forced_attrs|~(ignored_added_attrs)))
+                else if (summary_attributes[i] & ~((node->old_data)->attr) & (node->new_data)->attr & (forced_attrs|~(ignored_added_attrs)))
                 {
-                    summary[i]=a;
+                    summary[i]= a ;
                 }
                 else if ( summary_attributes[i] &
                         (
-                         (((node->old_data)->attr&~((node->new_data)->attr)&ignored_removed_attrs)) |
-                          (~((node->old_data)->attr)&(node->new_data)->attr&ignored_added_attrs) |
-                          (((node->old_data)->attr&(node->new_data)->attr)&ignored_changed_attrs)
+                         (((node->old_data)->attr & ~((node->new_data)->attr) & ignored_removed_attrs)) |
+                          (~((node->old_data)->attr) & (node->new_data)->attr & ignored_added_attrs) |
+                          (((node->old_data)->attr & (node->new_data)->attr) & ignored_changed_attrs)
                           )
                         )
                 {
-                    summary[i]=g;
+                    summary[i] = g;
                 }
-                else if (summary_attributes[i]&((node->old_data)->attr&(node->new_data)->attr))
+                else if (summary_attributes[i] & ((node->old_data)->attr & (node->new_data)->attr))
                 {
-                    summary[i]=u;
+                    summary[i] = u;
                 }
                 else
                 {
-                    summary[i]=s;
+                    summary[i] = s;
                 }
             }
         }
@@ -897,7 +908,7 @@ int gen_report(seltree* node)
     ignored_removed_attrs = get_special_report_group("report_ignore_removed_attrs");
     ignored_changed_attrs = get_special_report_group("report_ignore_changed_attrs");
 
-    fprintf(stdout, "\n[%s:%d:%s] +++ gen_report() +++ nadd:%d nrem:%d nchg:%d \n", __FILE__, __LINE__, __func__, nadd, nrem, nchg);
+    //fprintf(stdout, "\n[%s:%d:%s] +++ gen_report() +++ nadd:%d nrem:%d nchg:%d \n", __FILE__, __LINE__, __func__, nadd, nrem, nchg);
 
     terse_report(node);
 
@@ -905,7 +916,7 @@ int gen_report(seltree* node)
     send_audit_report();
 #endif
 
-    fprintf(stdout, "\n[%s:%d:%s] +++ gen_report() +++ nadd:%d nrem:%d nchg:%d \n", __FILE__, __LINE__, __func__, nadd, nrem, nchg);
+    //fprintf(stdout, "\n[%s:%d:%s] +++ gen_report() +++ nadd:%d nrem:%d nchg:%d \n", __FILE__, __LINE__, __func__, nadd, nrem, nchg);
 
     if ((nadd|nrem|nchg) > 0 || conf->report_quiet == 0)
     {

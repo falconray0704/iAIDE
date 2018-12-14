@@ -625,8 +625,8 @@ int main(int argc,char**argv)
         exit(INVALID_ARGUMENT_ERROR);
     }
 
-    fprintf(stdout, "+++ RAM:%d +++\n", conf->enable_RAM_DB);
-    fprintf(stdout, "+++ JSON:%d +++\n", conf->enable_JSON_DB);
+    //fprintf(stdout, "+++ RAM:%d +++\n", conf->enable_RAM_DB);
+    //fprintf(stdout, "+++ JSON:%d +++\n", conf->enable_JSON_DB);
 
 
     errorno=commandconf('C',conf->config_file);
@@ -645,16 +645,18 @@ int main(int argc,char**argv)
     Now we construct it. And we have THE tree.
     */
 
+    /*
     fprintf(stdout, "+++ out cnt:%d out items:", conf->db_out_size);
     for (idx = 0; idx < conf->db_out_size; idx++)
     {
         fprintf(stdout," %d", conf->db_out_order[idx]);
     }
     fprintf(stdout,"\n");
+    */
 
-    fprintf(stdout, "+++ gen_tree() begin +++\n");
+    //fprintf(stdout, "+++ gen_tree() begin +++\n");
     conf->tree = gen_tree(conf->selrxlst,conf->negrxlst,conf->equrxlst);
-    fprintf(stdout, "+++ gen_tree() end +++\n");
+    //fprintf(stdout, "+++ gen_tree() end +++\n");
 
     /* Let's do some sanity checks for the config */
     if(cmpurl(conf->dbc_in.db_url,conf->dbc_out.db_url) == RETOK)
@@ -747,11 +749,13 @@ int main(int argc,char**argv)
     if (!conf->config_check)
     {
         char * jDBStr = NULL;
+        /*
         fprintf(stdout, "\n[%s:%d:%s] +++ Confs 1 +++ check:%d limit:%p Action:%x rbase16:%d rQuiet:%d rDetailInit:%d \n",
                 __FILE__, __LINE__, __func__, conf->config_check, conf->limit, conf->action,
                 conf->report_base16, conf->report_quiet, conf->report_detailed_init );
         fprintf(stdout, "\n[%s:%d:%s] +++ Confs 2 +++ Grouped:%d summarize_changes:%d verbose_level:%d \n",
                 __FILE__, __LINE__, __func__, conf->grouped, conf->summarize_changes, conf->verbose_level);
+                */
 
         if(conf->action & DO_INIT)
         {
@@ -807,6 +811,7 @@ int main(int argc,char**argv)
 
         populate_tree(conf->tree);
 
+        /*
         fprintf(stdout, "\n[%s:%d:%s] +++ Confs 1 +++ check:%d limit:%p Action:%x rbase16:%d rQuiet:%d rDetailInit:%d \n",
                 __FILE__, __LINE__, __func__, conf->config_check, conf->limit, conf->action,
                 conf->report_base16, conf->report_quiet, conf->report_detailed_init );
@@ -816,6 +821,7 @@ int main(int argc,char**argv)
         fprintf(stdout, "\n+++ Print tree after populate_tree() begin +++\n");
         print_tree(conf->tree);
         fprintf(stdout, "\n+++ Print tree after populate_tree() end +++\n");
+                */
 
         db_close();
 

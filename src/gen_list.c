@@ -1125,7 +1125,24 @@ static void add_file_to_tree(seltree* tree,db_line* file,int db, DB_ATTR_TYPE at
         }
 
         //fprintf(stdout, "\n[%s:%d:%s] ---------- add_file_to_tree() fail\n", __FILE__, __LINE__, __func__);
+        /*
+        if (strcmp(node->path, "/file_a") == 0)
+        {
+            //fprintf(stdout, "\n[%s:%d:%s] [%s] checked:0x%x attr:0x%llx ch_attr:0x%llx fAttr:0x%llx cAttr:0x%llx rAttr:0x%llx aAttr:0x%llx",
+             //       __FILE__, __LINE__, __func__, node->path, node->checked, node->attr, node->changed_attrs,
+             //       forced_attrs, ignored_changed_attrs, ignored_removed_attrs, ignored_added_attrs);
+            //fprintf(stdout, "\n[%s:%d:%s] [%s - old] size:%d attr:0x%x\n ", __FILE__, __LINE__, __func__, node->path, node->old_data->size, node->old_data->attr);
+            //fprintf(stdout, "\n[%s:%d:%s] [%s - new] size:%d attr:0x%x\n ", __FILE__, __LINE__, __func__, node->path, node->new_data->size, node->new_data->attr);
+            fprintf(stdout, "\n[%s:%d:%s] [%s] attr:0x%x chAttr:0x%x\n ", __FILE__, __LINE__, __func__, node->path, node->attr, node->changed_attrs);
+        }
+        */
         node->changed_attrs = get_changed_attributes(node->old_data,node->new_data);
+        /*
+        if (strcmp(node->path, "/file_a") == 0)
+        {
+            fprintf(stdout, "\n[%s:%d:%s] [%s] attr:0x%x chAttr:0x%x\n ", __FILE__, __LINE__, __func__, node->path, node->attr, node->changed_attrs);
+        }
+        */
         //fprintf(stdout, "\n[%s:%d:%s] ---------- add_file_to_tree() fail\n", __FILE__, __LINE__, __func__);
         /* Free the data if same else leave as is for report_tree */
         if((~(ignored_changed_attrs) & node->changed_attrs) == RETOK)
@@ -1448,8 +1465,8 @@ void populate_tree(seltree* tree)
     DB_ATTR_TYPE attr=0;
     seltree* node=NULL;
 
-    fprintf(stdout, "\n[%s:%d:%s] conf->action:%x S_IFMT:0x%x:%d:O%o \n", __FILE__, __LINE__, __func__, conf->action, S_IFMT, S_IFMT, S_IFMT);
-    fprintf(stdout, "\n[%s:%d:%s] conf->action:%x S_IFLNK:0x%x:%d:O%o \n", __FILE__, __LINE__, __func__, conf->action, S_IFLNK, S_IFLNK, S_IFLNK);
+    //fprintf(stdout, "\n[%s:%d:%s] conf->action:%x S_IFMT:0x%x:%d:O%o \n", __FILE__, __LINE__, __func__, conf->action, S_IFMT, S_IFMT, S_IFMT);
+    //fprintf(stdout, "\n[%s:%d:%s] conf->action:%x S_IFLNK:0x%x:%d:O%o \n", __FILE__, __LINE__, __func__, conf->action, S_IFLNK, S_IFLNK, S_IFLNK);
     /* With this we avoid unnecessary checking of removed files. */
     if(conf->action & DO_INIT)
     {
@@ -1485,7 +1502,7 @@ void populate_tree(seltree* tree)
         }
     }
 
-    fprintf(stdout, "\n[%s:%d:%s] +++ Loading DB_NEW finished!\n", __FILE__, __LINE__, __func__);
+    //fprintf(stdout, "\n[%s:%d:%s] +++ Loading DB_NEW finished!\n", __FILE__, __LINE__, __func__);
 
     if((conf->action & DO_INIT) || (conf->action & DO_COMPARE))
     {
@@ -1572,7 +1589,7 @@ void populate_tree(seltree* tree)
         }
     }
 
-    fprintf(stdout, "\n[%s:%d:%s] +++ Loading DB_OLD finished!\n", __FILE__, __LINE__, __func__);
+    //fprintf(stdout, "\n[%s:%d:%s] +++ Loading DB_OLD finished!\n", __FILE__, __LINE__, __func__);
 
     if(conf->action & DO_INIT)
     {
